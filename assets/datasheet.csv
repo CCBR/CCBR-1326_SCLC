@@ -1,0 +1,4 @@
+cluster,atac,rna
+1,data/rank3.pdx.cluster1.alone.logFC_1.pval_0.05.csv,data/cluster1_vs_other_DGE.csv
+2,data/rank3.pdx.cluster2.alone.logFC_1.pval_0.05.csv,data/cluster2_vs_other_DGE.csv
+3,data/rank3.pdx.cluster3.alone.logFC_1.pval_0.05.csv,data/cluster3_vs_other_DGE.csv
