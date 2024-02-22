@@ -4,6 +4,7 @@ include { BEDTOOLS_INTERSECT } from './modules/local/bedtools/intersect'
 include { GUNZIP } from './modules/nf-core/gunzip'
 include { JOIN_PEAKS_PROMOTERS } from './modules/local/join_peaks_promoters'
 include { JOIN_ATAC_RNA } from './modules/local/join_atac_rna'
+include { ROWBIND } from './modules/local/rowbind'
 
 workflow {
     input = Channel.fromPath(file(params.datasheet, checkIfExists: true))
@@ -29,4 +30,7 @@ workflow {
     | JOIN_ATAC_RNA
 
     ch_atac_rna = JOIN_ATAC_RNA.out.tsv
+        .map{ meta, file -> file}
+        .collect()
+        | ROWBIND
 }

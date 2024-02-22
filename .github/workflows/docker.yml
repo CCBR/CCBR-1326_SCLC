@@ -11,7 +11,6 @@ on:
       - main
     paths:
       - "docker/**"
-  workflow_dispatch:
 
 jobs:
   generate-matrix:
@@ -26,6 +25,7 @@ jobs:
           default-patterns: |
             meta.yml
             Dockerfile
+            environment.txt
 
   update-docker:
     needs: [generate-matrix]

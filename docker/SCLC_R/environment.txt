@@ -1,4 +1,5 @@
 r-base=4.3.2
+r-broom
 r-DT
 r-dplyr
 r-doFuture
@@ -11,9 +12,11 @@ r-knitr
 r-lubridate
 r-plotly
 r-purrr
+r-RColorBrewer
 r-readr
 r-rlang
 r-scales
 r-stringr
 r-tibble
 r-tidyr
+r-viridis

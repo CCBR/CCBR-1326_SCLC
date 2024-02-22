@@ -10,7 +10,7 @@ format:
         toc: true
         code-fold: true
 params:
-    atac_rna_tsv: "output/join_atac_rna/cluster1_vs_other_DGE.joined_promoters.tsv"
+    atac_rna_tsv: "output/rowbind/concat.atac_rna.tsv"
 ---
 
 ```{r setup}
@@ -34,16 +34,17 @@ min_max <- list(
   max = ~max(.x, na.rm = TRUE)
 )
 abs_max <- dat %>% summarize(across(starts_with('log2FoldChange'), min_max)) %>% as.list() %>% unname() %>% unlist() %>% abs() %>% max()
-ggplotly(
-  dat %>% 
+corr_plot <- dat %>% 
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>% 
-    ggplot(aes(x = log2FoldChange_atac, y = log2FoldChange_rna, text = gene_name)) +
+    ggplot(aes(x = log2FoldChange_atac, y = log2FoldChange_rna,
+               color = cluster_id, text = gene_name)) +
     geom_hline(yintercept = 0, linetype = 'dashed', color = 'darkgrey') +
     geom_vline(xintercept = 0, linetype = 'dashed', color = 'darkgrey') +
-    geom_point() +
+    geom_point(alpha = 0.7) +
+    scale_color_viridis_d() +
     lims(x = c(-abs_max, abs_max), y = c(-abs_max, abs_max)) +
     labs(x = 'ATAC log2(FC)', y = 'RNA log2(FC)')
-)
+ggplotly(corr_plot)
 ```
 
 

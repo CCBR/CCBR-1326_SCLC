@@ -3,7 +3,7 @@ process BEDTOOLS_INTERSECT {
     """
     """
     tag { meta.id }
-    container 'nciccbr/ccbr_ubuntu_base_20.04:v6.1'
+    container 'nciccbr/ccbr_ubuntu_base_20.04:v6'
 
     input:
     tuple val(meta), path(bedA), path(bedB)
