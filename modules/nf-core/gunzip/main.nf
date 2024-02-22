@@ -1,6 +1,7 @@
 process GUNZIP {
     tag "$archive"
     label 'process_single'
+    publishDir enabled: false
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
