@@ -7,10 +7,10 @@ process JOIN_PEAKS_PROMOTERS {
     container 'nciccbr/consensus_peaks:v1.1'
 
     input:
-    tuple val(meta), path(atac_promoters), path(atac_logfc), path(rna_dge)
+    tuple val(meta), path(atac_promoters), path(atac_logfc), path(rna_logfc)
 
     output:
-    tuple val(meta), path("*.tsv")
+    tuple val(meta), path("*.tsv"), path(rna_logfc)
 
     script:
     outfile = "${atac_promoters.baseName}.tsv"
