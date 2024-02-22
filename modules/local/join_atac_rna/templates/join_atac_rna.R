@@ -5,14 +5,16 @@ library(readr)
 library(stringr)
 library(tidyr)
 main <- function(promoters_logfc = "${promoters_logfc}", rna_logfc = "${rna_logfc}",
-                 outfile = "${outfile}", logfile = "${logfile}") {
+                 outfile = "${outfile}", logfile = "${logfile}", cluster_id = "${meta.id}") {
   dat_rna <- read_csv(rna_logfc) %>% rename(gene_name = `...1`)
   dat_promoters <- read_tsv(promoters_logfc)
   genes_atac_rna <- dat_promoters %>%
     inner_join(dat_rna, by = "gene_name") %>%
     rename_with(~ str_replace(., ".x", "_atac"), ends_with(".x")) %>%
     rename_with(~ str_replace(., ".y", "_rna"), ends_with(".y"))
-  genes_atac_rna %>% write_tsv(outfile)
+  genes_atac_rna %>%
+    mutate(cluster_id = cluster_id) %>%
+    write_tsv(outfile)
 
   log_msg <- glue("RNAseq:\t{nrow(dat_rna)}",
     "ATACseq:\t{nrow(dat_promoters)}",
