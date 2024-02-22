@@ -1,4 +1,5 @@
 r-base=4.3.2
+r-broom
 r-DT
 r-dplyr
 r-doFuture
