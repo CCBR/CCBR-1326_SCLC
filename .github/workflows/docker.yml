@@ -26,6 +26,7 @@ jobs:
           default-patterns: |
             meta.yml
             Dockerfile
+            environment.txt
 
   update-docker:
     needs: [generate-matrix]
