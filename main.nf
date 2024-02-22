@@ -27,4 +27,6 @@ workflow {
     | join(input)
     | JOIN_PEAKS_PROMOTERS
     | JOIN_ATAC_RNA
+
+    ch_atac_rna = JOIN_ATAC_RNA.out.tsv
 }
