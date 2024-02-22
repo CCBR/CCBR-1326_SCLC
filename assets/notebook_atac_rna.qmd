@@ -1,0 +1,33 @@
+---
+title: 'integrated differential ATACseq and RNAseq'
+date: today
+engine: knitr
+format:
+    html:
+        self-contained: true
+        toc: true
+        code-fold: true
+params:
+    atac_rna_tsv: "output/join_atac_rna/cluster1_vs_other_DGE.joined_promoters.tsv"
+---
+
+```{r setup}
+library(dplyr)
+library(glue)
+library(readr)
+library(stringr)
+library(tidyr)
+library(ggplot2)
+library(plotly)
+theme_set(theme_bw)
+```
+
+```{r read}
+dat <- read_tsv(params$atac_rna_logfc) 
+```
+```{r plot_corr}
+dat %>%
+  ggplot(aes(x = log2FoldChange_atac, y = log2FoldChange_rna)) + 
+  geom_point()
+```
+
