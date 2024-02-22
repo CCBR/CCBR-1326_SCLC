@@ -2,6 +2,8 @@
 title: 'integrated differential ATACseq and RNAseq'
 date: today
 engine: knitr
+project:
+    execute-dir: project
 format:
     html:
         self-contained: true
@@ -14,20 +16,34 @@ params:
 ```{r setup}
 library(dplyr)
 library(glue)
+library(here)
 library(readr)
 library(stringr)
 library(tidyr)
 library(ggplot2)
 library(plotly)
-theme_set(theme_bw)
+theme_set(theme_bw())
 ```
 
-```{r read}
-dat <- read_tsv(params$atac_rna_logfc) 
+```{r read, message = FALSE}
+dat <- read_tsv(here(params$atac_rna_tsv))
 ```
 ```{r plot_corr}
-dat %>%
-  ggplot(aes(x = log2FoldChange_atac, y = log2FoldChange_rna)) + 
-  geom_point()
+min_max <- list(
+  min = ~min(.x, na.rm = TRUE), 
+  max = ~max(.x, na.rm = TRUE)
+)
+abs_max <- dat %>% summarize(across(starts_with('log2FoldChange'), min_max)) %>% as.list() %>% unname() %>% unlist() %>% abs() %>% max()
+ggplotly(
+  dat %>% 
+    mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>% 
+    ggplot(aes(x = log2FoldChange_atac, y = log2FoldChange_rna, text = gene_name)) +
+    geom_hline(yintercept = 0, linetype = 'dashed', color = 'darkgrey') +
+    geom_vline(xintercept = 0, linetype = 'dashed', color = 'darkgrey') +
+    geom_point() +
+    lims(x = c(-abs_max, abs_max), y = c(-abs_max, abs_max)) +
+    labs(x = 'ATAC log2(FC)', y = 'RNA log2(FC)')
+)
 ```
+
 
