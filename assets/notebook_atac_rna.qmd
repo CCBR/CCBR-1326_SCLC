@@ -69,10 +69,10 @@ corr_line_plot <- dat %>%
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>% 
     ggplot(aes(y = log2FoldChange_atac, x = log2FoldChange_rna,
                color = cluster_id, group = cluster_id, 
-               text = glue('gene name:     {gene_name}', 
-                           'cluster:       {cluster_id}',
-                           'ATAC log2(FC): {log2FoldChange_atac}',
-                           'RNA log2(FC): {log2FoldChange_rna}',
+               text = glue('gene name:\t{gene_name}', 
+                           'cluster:\t{cluster_id}',
+                           'ATAC log2(FC):\t{log2FoldChange_atac}',
+                           'RNA log2(FC):\t{log2FoldChange_rna}',
                            .sep = '\n')
                )
            ) +
@@ -84,7 +84,7 @@ corr_line_plot <- dat %>%
     guides(color = guide_legend(title = 'cluster')) +
     lims(x = c(-abs_max, abs_max), y = c(-abs_max, abs_max)) +
     labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
-ggplotly(corr_line_plot)
+ggplotly(corr_line_plot, tooltip = 'text')
 ```
 
 
