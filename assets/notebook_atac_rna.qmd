@@ -13,6 +13,7 @@ params:
   input_dir: NULL
   meta: NULL
   atac_rna_tsv: "output/rowbind/concat.atac_rna.tsv"
+  atac_rna_venn: "output/join_atac_rna/joined_atac_rna.log"
 ---
 
 ```{r setup}
@@ -20,6 +21,7 @@ params:
 library(broom)
 library(dplyr)
 library(ggplot2)
+library(ggVennDiagram)
 library(glue)
 library(knitr)
 library(plotly)
@@ -40,9 +42,24 @@ dat <- read_tsv(params$atac_rna_tsv) %>%
 
 ## Differential ATAC & RNAseq 
 
-### overlapping genes from ATAC & RNAseq
+### Overlapping differential genes from ATAC & RNAseq
 
 ```{r plot_venn}
+#| message: false
+v <- read_delim(params$atac_rna_venn, delim = ':\t', 
+           col_names = c('set','genes')) %>% 
+    pivot_wider(names_from = set, values_from = genes) %>% 
+    unlist()
+
+venn_dat <- list(
+    RNAseq = identity_transformer(glue("1:{v[['RNAseq']]}")),
+    ATACseq = identity_transformer(glue("{v[['RNAseq']]-v[['joined']]}:{v[['RNAseq']]+v[['ATACseq']]+v[['joined']]}"))
+)
+
+Venn(venn_dat) %>% 
+    process_data(shape_id = "201") %>% 
+    plot_venn() +
+    theme(legend.position = 'none')
 
 ```
 

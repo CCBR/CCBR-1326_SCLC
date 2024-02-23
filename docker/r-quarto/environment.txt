@@ -6,6 +6,7 @@ r-doFuture
 r-future
 r-future.apply
 r-ggplot2
+r-ggvenndiagram
 r-glue
 r-janitor
 r-knitr
