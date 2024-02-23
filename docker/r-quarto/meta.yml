@@ -1,4 +1,4 @@
 dockerhub_namespace: nciccbr
-image_name: SCLC_R
+image_name: sclc_r-quarto
 version: v0.1.0
 container: "$(dockerhub_namespace)/$(image_name):$(version)"
