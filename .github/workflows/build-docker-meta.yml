@@ -5,7 +5,7 @@ on:
     inputs:
       context_dir:
         type: string
-        description: path to the directory containing the Dockerfile and meta.yml file (e.g. common/ccbr_chipseeker/)
+        description: path to the directory containing the Dockerfile and meta.yml file (e.g. docker/r-quarto/)
         required: true
       push:
         type: boolean
