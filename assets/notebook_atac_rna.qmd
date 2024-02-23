@@ -14,9 +14,9 @@ params:
 ---
 
 ```{r setup}
+library(broom)
 library(dplyr)
 library(glue)
-library(here)
 library(readr)
 library(stringr)
 library(tidyr)
@@ -26,25 +26,34 @@ theme_set(theme_bw())
 ```
 
 ```{r read, message = FALSE}
-dat <- read_tsv(here(params$atac_rna_tsv))
+dat <- read_tsv(params$atac_rna_tsv)
 ```
-```{r plot_corr}
+```{r plot_corr_line}
+cor_logfc <- cor.test(dat$log2FoldChange_atac, 
+                      dat$log2FoldChange_rna,
+                      method = "spearman") %>% 
+  tidy()
+lm_logfc <- dat %>% group_by(cluster_id) %>% 
+  do(tidy(lm(log2FoldChange_rna ~ log2FoldChange_atac, .)))
+
 min_max <- list(
   min = ~min(.x, na.rm = TRUE), 
   max = ~max(.x, na.rm = TRUE)
 )
 abs_max <- dat %>% summarize(across(starts_with('log2FoldChange'), min_max)) %>% as.list() %>% unname() %>% unlist() %>% abs() %>% max()
-corr_plot <- dat %>% 
+corr_line_plot <- dat %>% 
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>% 
     ggplot(aes(x = log2FoldChange_atac, y = log2FoldChange_rna,
-               color = cluster_id, text = gene_name)) +
+               color = cluster_id, text = gene_name, 
+               group = as.factor(cluster_id))) +
     geom_hline(yintercept = 0, linetype = 'dashed', color = 'darkgrey') +
     geom_vline(xintercept = 0, linetype = 'dashed', color = 'darkgrey') +
     geom_point(alpha = 0.7) +
+    #geom_smooth(method=lm, se=FALSE) +
     scale_color_viridis_d() +
     lims(x = c(-abs_max, abs_max), y = c(-abs_max, abs_max)) +
     labs(x = 'ATAC log2(FC)', y = 'RNA log2(FC)')
-ggplotly(corr_plot)
+ggplotly(corr_line_plot)
 ```
 
 
