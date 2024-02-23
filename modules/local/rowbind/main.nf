@@ -6,13 +6,13 @@ process ROWBIND {
     container 'nciccbr/consensus_peaks:v1.1'
 
     input:
-    path(input_list)
+    tuple val(meta), path(input_list)
 
     output:
-    path("concat.atac_rna.tsv"), emit: tsv
+    path("concat.*.tsv"), emit: tsv
 
     script:
     infiles_list = input_list.join(',')
-    outfile = "concat.atac_rna.tsv"
+    outfile = "concat.${meta.id}.tsv"
     template 'rowbind.R'
 }

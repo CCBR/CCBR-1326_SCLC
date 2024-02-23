@@ -38,15 +38,23 @@ workflow {
     COUNT_INTERSECT(BEDTOOLS_INTERSECT.out.counts).tsv
         .map{meta, file -> file}
         .collect()
+        .map{ files -> [ [id: 'set_counts'], files ] }
+        .view()
         | ROWBIND_COUNT
 
     ch_atac_rna = JOIN_ATAC_RNA.out.tsv
         .map{ meta, file -> file}
         .collect()
+        .map{ files -> [ [id: 'atac_rna'], files ]}
         | ROWBIND_LOGFC
+
+    qmd_params = ch_atac_rna.combine(ROWBIND_COUNT.out.tsv)
+        .map{file1, file2 -> [ 'atac_rna_tsv': file1.toString(), 'set_counts_tsv': file2.toString() ]}
+    qmd_inputs = ch_atac_rna.mix(ROWBIND_COUNT.out.tsv).collect().view()
     QUARTONOTEBOOK([[id: 'atac_rna_clusters'], file(params.notebook_atac_rna, checkIfExists: true)],
-                   ch_atac_rna.map{file -> [ 'atac_rna_tsv': file.toString() ]},
-                   ch_atac_rna,
+                   qmd_params,
+                   qmd_inputs,
                    []
     )
+
 }

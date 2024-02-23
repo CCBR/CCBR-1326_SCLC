@@ -12,8 +12,9 @@ params:
   artifact_dir: NULL
   input_dir: NULL
   meta: NULL
-  atac_rna_tsv: "output/rowbind/concat.atac_rna.tsv"
-  atac_rna_venn: "output/join_atac_rna/joined_atac_rna.log"
+  atac_rna_tsv:   "output/rowbind_logfc/concat.atac_rna.tsv"
+  atac_rna_venn:  "output/join_atac_rna/joined_atac_rna.log"
+  set_counts_tsv: "output/rowbind_count/concat.set_counts.tsv"
 ---
 
 ```{r setup}
