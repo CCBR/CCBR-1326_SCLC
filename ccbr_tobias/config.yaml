@@ -1,20 +1,20 @@
 ## you probably need to change or comment/uncomment some of these
 
 # The working dir... output will be in the results subfolder of the workdir
-workdir: "/gpfs/gsfs12/users/sovacoolkl/CCBR-1326/ccbr_tobias"
+workdir: "/gpfs/gsfs10/users/SCLCgenomics/sovacoolkl/CCBR-1326/ccbr_tobias"
 # to use the workdir version of cluster.json comment out the following line
-# clusterjson: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/config/cluster.json"
+# clusterjson: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/config/cluster.json"
 # define scripts/resource folders ... if you curated your own please add them here
-resourcesdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources" # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources
+resourcesdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/resources" # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/resources
 # scripts folder is copied over to the workdir from pipeline_home.
 # to use the workdir version of scripts comment out the following line
-# scriptsdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/scripts"  # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/scripts
+# scriptsdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/scripts"  # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/scripts
 # preinstalled modules on biowulf that will be used
 # to use the workdir version of tools.yaml comment out the following line
-tools: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/config/tools.yaml"
+tools: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/config/tools.yaml"
 # uropa json base template is copied over to the workdir from pipeline_home.
 # to use the workdir version of uropa_base_config.yaml comment out the following line
-uropabaseyaml: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/config/uropa_base_config.yaml"
+uropabaseyaml: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/config/uropa_base_config.yaml"
 
 containers:
   tobias: "docker://nciccbr/ccbr_tobias:v2"
