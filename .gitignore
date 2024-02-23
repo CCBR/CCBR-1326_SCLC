@@ -4,3 +4,5 @@ work/
 .nextflow*
 assets/tss_bed
 .Rproj.user
+
+/.quarto/
