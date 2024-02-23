@@ -25,7 +25,8 @@
           "quartonotebook": {
             "branch": "master",
             "git_sha": "07ecae35e5675ac4c1e2d84cf22021490f8b7947",
-            "installed_by": ["modules"]
+            "installed_by": ["modules"],
+            "patch": "modules/nf-core/quartonotebook/quartonotebook.diff"
           }
         }
       }

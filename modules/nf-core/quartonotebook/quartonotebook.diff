@@ -1,0 +1,240 @@
+Changes in module 'nf-core/quartonotebook'
+--- modules/nf-core/quartonotebook/main.nf
++++ modules/nf-core/quartonotebook/main.nf
+@@ -8,7 +8,7 @@
+     // required dependencies for your analyses. You'll at least need Quarto
+     // itself, Papermill and whatever language you are running your analyses on;
+     // you can see an example in this module's Dockerfile.
+-    container "docker.io/erikfas/quartonotebook"
++    container "nciccbr/sclc_r-quarto:v0.1.0"
+
+     input:
+     tuple val(meta), path(notebook)
+
+--- modules/nf-core/quartonotebook/tests/main.nf.test
++++ modules/nf-core/quartonotebook/tests/main.nf.test
+@@ -209,4 +209,4 @@
+
+     }
+
+-}+}
+
+--- modules/nf-core/quartonotebook/tests/main.nf.test.snap
++++ modules/nf-core/quartonotebook/tests/main.nf.test.snap
+@@ -19,22 +19,22 @@
+                     ]
+                 ],
+                 "2": [
+-
++
+                 ],
+                 "3": [
+-
++
+                 ],
+                 "4": [
+-
++
+                 ],
+                 "5": [
+                     "versions.yml:md5,93481281b24bb1b44ecc4387e0957a0e"
+                 ],
+                 "artifacts": [
+-
++
+                 ],
+                 "extensions": [
+-
++
+                 ],
+                 "html": [
+                     [
+@@ -53,7 +53,7 @@
+                     ]
+                 ],
+                 "params_yaml": [
+-
++
+                 ],
+                 "versions": [
+                     "versions.yml:md5,93481281b24bb1b44ecc4387e0957a0e"
+@@ -86,22 +86,22 @@
+                     ]
+                 ],
+                 "2": [
+-
++
+                 ],
+                 "3": [
+-
++
+                 ],
+                 "4": [
+-
++
+                 ],
+                 "5": [
+                     "versions.yml:md5,55e1f767fbd72aae14cbbfb638e38a90"
+                 ],
+                 "artifacts": [
+-
++
+                 ],
+                 "extensions": [
+-
++
+                 ],
+                 "html": [
+                     [
+@@ -120,7 +120,7 @@
+                     ]
+                 ],
+                 "params_yaml": [
+-
++
+                 ],
+                 "versions": [
+                     "versions.yml:md5,55e1f767fbd72aae14cbbfb638e38a90"
+@@ -197,7 +197,7 @@
+                     ]
+                 ],
+                 "4": [
+-
++
+                 ],
+                 "5": [
+                     "versions.yml:md5,55e1f767fbd72aae14cbbfb638e38a90"
+@@ -211,7 +211,7 @@
+                     ]
+                 ],
+                 "extensions": [
+-
++
+                 ],
+                 "html": [
+                     [
+@@ -268,7 +268,7 @@
+                     ]
+                 ],
+                 "2": [
+-
++
+                 ],
+                 "3": [
+                     [
+@@ -279,16 +279,16 @@
+                     ]
+                 ],
+                 "4": [
+-
++
+                 ],
+                 "5": [
+                     "versions.yml:md5,55e1f767fbd72aae14cbbfb638e38a90"
+                 ],
+                 "artifacts": [
+-
++
+                 ],
+                 "extensions": [
+-
++
+                 ],
+                 "html": [
+                     [
+@@ -331,10 +331,10 @@
+                 "versions.yml:md5,55e1f767fbd72aae14cbbfb638e38a90"
+             ],
+             [
+-
++
+             ],
+             [
+-
++
+             ]
+         ],
+         "meta": {
+@@ -379,7 +379,7 @@
+                     ]
+                 ],
+                 "4": [
+-
++
+                 ],
+                 "5": [
+                     "versions.yml:md5,55e1f767fbd72aae14cbbfb638e38a90"
+@@ -393,7 +393,7 @@
+                     ]
+                 ],
+                 "extensions": [
+-
++
+                 ],
+                 "html": [
+                     [
+@@ -430,4 +430,4 @@
+         },
+         "timestamp": "2024-02-09T11:06:08.013103"
+     }
+-}+}
+
+--- modules/nf-core/quartonotebook/Dockerfile
++++ /dev/null
+@@ -1,38 +0,0 @@
+-#
+-# First stage: Quarto installation
+-#
+-FROM ubuntu:20.04 as quarto
+-ARG QUARTO_VERSION=1.3.433
+-ARG TARGETARCH
+-RUN apt-get update \
+-    && apt-get install -y --no-install-recommends \
+-        ca-certificates \
+-        curl \
+-    && apt-get clean
+-
+-RUN mkdir -p /opt/quarto \
+-    && curl -o quarto.tar.gz -L "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-${TARGETARCH}.tar.gz" \
+-    && tar -zxvf quarto.tar.gz -C /opt/quarto/ --strip-components=1 \
+-    && rm quarto.tar.gz
+-
+-#
+-# Second stage: Conda environment
+-#
+-FROM condaforge/mambaforge:23.11.0-0
+-COPY --from=quarto /opt/quarto /opt/quarto
+-ENV PATH="${PATH}:/opt/quarto/bin"
+-
+-# Install packages using Mamba; also remove static libraries, python bytecode
+-# files and javascript source maps that are not required for execution
+-COPY environment.yml ./
+-RUN mamba env update --name base --file environment.yml \
+-    && mamba clean --all --force-pkgs-dirs --yes \
+-    && find /opt/conda -follow -type f -name '*.a' -delete \
+-    && find /opt/conda -follow -type f -name '*.pyc' -delete \
+-    && find /opt/conda -follow -type f -name '*.js.map' -delete
+-
+-CMD /bin/bash
+-
+-LABEL \
+-    authors = "Erik Fasterius" \
+-    description = "Dockerfile for the quartonotebook nf-core module"
+
+--- modules/nf-core/quartonotebook/environment.yml
++++ /dev/null
+@@ -1,12 +0,0 @@
+-name: quartonotebook
+-
+-channels:
+-  - conda-forge
+-  - bioconda
+-  - defaults
+-
+-dependencies:
+-  - conda-forge::jupyter=1.0.0
+-  - conda-forge::matplotlib=3.4.3
+-  - conda-forge::papermill=2.4.0
+-  - conda-forge::r-rmarkdown=2.25
+
+************************************************************
