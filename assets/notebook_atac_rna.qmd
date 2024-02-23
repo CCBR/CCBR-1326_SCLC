@@ -59,6 +59,7 @@ venn_dat <- list(
 Venn(venn_dat) %>% 
     process_data(shape_id = "201") %>% 
     plot_venn() +
+    scale_fill_distiller(palette = 'YlGnBu', direction = 1) +
     theme(legend.position = 'none')
 
 ```
