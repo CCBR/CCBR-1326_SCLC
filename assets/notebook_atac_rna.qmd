@@ -2,15 +2,17 @@
 title: 'integrated differential ATACseq and RNAseq'
 date: today
 engine: knitr
-project:
-    execute-dir: project
 format:
     html:
         self-contained: true
         toc: true
         code-fold: true
 params:
-    atac_rna_tsv: "output/rowbind/concat.atac_rna.tsv"
+  cpus: 1
+  artifact_dir: NULL
+  input_dir: NULL
+  meta: NULL
+  atac_rna_tsv: "output/rowbind/concat.atac_rna.tsv"
 ---
 
 ```{r setup}

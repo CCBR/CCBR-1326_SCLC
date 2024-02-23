@@ -5,6 +5,9 @@ include { GUNZIP } from './modules/nf-core/gunzip'
 include { JOIN_PEAKS_PROMOTERS } from './modules/local/join_peaks_promoters'
 include { JOIN_ATAC_RNA } from './modules/local/join_atac_rna'
 include { ROWBIND } from './modules/local/rowbind'
+include { QUARTO_RENDER } from './modules/local/quarto/render'
+include { QUARTONOTEBOOK } from './modules/nf-core/quartonotebook/main'
+include { CAT_CAT } from './modules/CCBR/cat/cat/main'
 
 workflow {
     input = Channel.fromPath(file(params.datasheet, checkIfExists: true))
@@ -24,6 +27,9 @@ workflow {
         | GUNZIP
     ch_promoters_bed = GUNZIP.out.gunzip.map{ meta, bed -> bed }
 
+
+    ch_bed_combined = CAT_CAT(ch_atac_bed.map{meta, file -> [ [id: 'combined'], file ]}.groupTuple()).file_out
+
     BEDTOOLS_INTERSECT(ch_atac_bed.combine(ch_promoters_bed))
     | join(input)
     | JOIN_PEAKS_PROMOTERS
@@ -33,4 +39,9 @@ workflow {
         .map{ meta, file -> file}
         .collect()
         | ROWBIND
+    QUARTONOTEBOOK([[id: 'atac_rna_clusters'], file(params.notebook_atac_rna, checkIfExists: true)],
+                   ch_atac_rna.map{file -> [ 'atac_rna_tsv': file.toString() ]},
+                   ch_atac_rna,
+                   []
+    )
 }

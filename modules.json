@@ -2,6 +2,17 @@
   "name": "",
   "homePage": "",
   "repos": {
+    "https://github.com/CCBR/nf-modules": {
+      "modules": {
+        "CCBR": {
+          "cat/cat": {
+            "branch": "main",
+            "git_sha": "8e65ce177604677b44bf29227e81c1e481ebeaf3",
+            "installed_by": ["modules"]
+          }
+        }
+      }
+    },
     "https://github.com/nf-core/modules.git": {
       "modules": {
         "nf-core": {
@@ -10,6 +21,11 @@
             "git_sha": "3a5fef109d113b4997c9822198664ca5f2716208",
             "installed_by": ["modules"],
             "patch": "modules/nf-core/gunzip/gunzip.diff"
+          },
+          "quartonotebook": {
+            "branch": "master",
+            "git_sha": "07ecae35e5675ac4c1e2d84cf22021490f8b7947",
+            "installed_by": ["modules"]
           }
         }
       }
