@@ -1,0 +1,74 @@
+## you probably need to change or comment/uncomment some of these
+
+# The working dir... output will be in the results subfolder of the workdir
+workdir: "/gpfs/gsfs12/users/sovacoolkl/CCBR-1326/ccbr_tobias"
+# to use the workdir version of cluster.json comment out the following line
+# clusterjson: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/config/cluster.json"
+# define scripts/resource folders ... if you curated your own please add them here
+resourcesdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources" # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources
+# scripts folder is copied over to the workdir from pipeline_home.
+# to use the workdir version of scripts comment out the following line
+# scriptsdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/scripts"  # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/scripts
+# preinstalled modules on biowulf that will be used
+# to use the workdir version of tools.yaml comment out the following line
+tools: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/config/tools.yaml"
+# uropa json base template is copied over to the workdir from pipeline_home.
+# to use the workdir version of uropa_base_config.yaml comment out the following line
+uropabaseyaml: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/config/uropa_base_config.yaml"
+
+containers:
+  tobias: "docker://nciccbr/ccbr_tobias:v2"
+
+# samples are entered in the following format:
+# data:
+#   Group1/Condition1: [list of group1 sample bams]
+#   Group2/Condition2: [list of group2 sample bams]
+# wildcards can be used and pipeline will populate the list with glob
+
+data:
+  c2: [/data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c2/*.bam]
+  c1_c3:
+    - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c1/*.bam
+    - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c3/*.bam
+
+# contrasts are list of 2 groups/conditions, for eg:
+# contrasts:
+#   contrastA : ["group2","group1"]
+
+contrasts:
+  c2_vs_others: ["c2", "c1_c3"]
+
+# peaks BED file to use
+peaks: "/data/SCLCgenomics/sovacoolkl/CCBR-1326/output/cat_cat/combined.bed"
+
+# genome specific resources
+genome: "hg19"
+mm10:
+  reffa: "/data/CCBR_Pipeliner/db/PipeDB/Indices/mm10_basic/mm10_basic.fa"
+  gtf: "/data/CCBR_Pipeliner/db/PipeDB/Indices/GTFs/mm10/gencode.vM21.annotation.gtf"
+hg38:
+  reffa: "/data/CCBR_Pipeliner/db/PipeDB/Indices/hg38_basic/hg38_basic.fa"
+  gtf: "/data/CCBR_Pipeliner/db/PipeDB/Indices/GTFs/hg38/gencode.v30.annotation.gtf"
+hg19:
+  reffa: "/data/CCBR_Pipeliner/db/PipeDB/Indices/hg19_basic/hg19.fa"
+  gtf: "/data/CCBR_Pipeliner/db/PipeDB/Indices/GTFs/hg19/gencode.v19.annotation.gtf"
+
+# blacklist BED file
+blacklist: ""
+
+# choose the motifs database to use
+motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_HUMAN_core_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_HUMAN_full_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_HUMAN_MOUSE_core_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_HUMAN_MOUSE_full_motifs.txt"
+#motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_MOUSE_core_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_MOUSE_full_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/JASPAR2020_core_nonredundant_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/JASPAR2020_core_redundant_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/JASPAR2020_vertebrate_nonredundant_motifs.txt"
+# motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/JASPAR2020_vertebrate_redundant_motifs.txt"
+
+# other parameters
+autocorrect_extra_params: ""
+footprinting_extra_params: ""
+bindetect_extra_params: ""
