@@ -5,4 +5,5 @@ work/
 assets/tss_bed
 .Rproj.user
 
+.DS_Store
 /.quarto/
