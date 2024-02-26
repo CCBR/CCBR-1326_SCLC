@@ -2,6 +2,9 @@
 title: 'integrated differential ATACseq and RNAseq'
 date: today
 engine: knitr
+execute:
+    message: false
+    warning: false
 format:
     html:
         self-contained: true
@@ -55,17 +58,7 @@ dat <- read_tsv(params$atac_rna_tsv) %>%
 
 ### Overlapping genes
 
-```{r plot_histogram}
-read_tsv(params$set_counts_tsv) %>% 
-    #filter(count > 0) %>% 
-    ggplot(aes(count, fill = count_type)) +
-    geom_histogram(binwidth=1) +
-    scale_y_log10(labels = label_log(digits = 2)) +
-    facet_wrap(~count_type, strip.position = 'bottom') +
-    labs(x = '') +
-    theme(legend.position = 'none')
-```
-
+Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 
 ```{r plot_venn}
 #| message: false
@@ -87,8 +80,35 @@ Venn(venn_dat) %>%
 
 ```
 
+Inspired by Fig. 3B-C from <https://www.science.org/doi/10.1126/science.abe1505#F3>
+
+```{r plot_histogram}
+overlap_counts <- read_tsv(params$set_counts_tsv) 
+
+plot_hist <- function(dat) {
+    dat %>%
+        ggplot(aes(count, fill = count_type)) +
+        geom_histogram(binwidth = 1) +
+        facet_grid(cluster_id ~ count_type, switch = 'x') + #, strip.position = 'bottom') +
+        labs(x = '') +
+        theme(legend.position = 'none')
+}
+
+overlap_counts %>%
+    filter(count > 0) %>% 
+    plot_hist()
+
+overlap_counts %>% 
+    plot_hist() +
+    scale_y_log10(labels = label_log(digits = 2))
+```
 
 ### Correlation
+
+Inspiration
+
+- Fig. 4B from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
+- Fig. 2A-B from <https://epigeneticsandchromatin.biomedcentral.com/articles/10.1186/s13072-019-0260-2/figures/2>
 
 ```{r plot_corr_line}
 cor_logfc <- dat %>% 
