@@ -58,6 +58,10 @@ dat <- read_tsv(params$atac_rna_tsv) %>%
 
 ### Overlapping genes
 
+Differential ATACseq peaks were intersected with known gene promoter regions.
+Peaks that overlap promoter regions were kept and joined with the corresponding
+differential gene expression data from RNAseq.
+
 Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 
 ```{r plot_venn}
@@ -147,5 +151,8 @@ corr_line_plot <- dat %>%
     labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
 ggplotly(corr_line_plot, tooltip = 'text')
 ```
+
+
+## Infer TF-gene regulatory network
 
 
