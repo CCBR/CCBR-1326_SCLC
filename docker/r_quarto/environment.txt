@@ -1,3 +1,8 @@
+bioconductor-biocparallel
+bioconductor-bsgenome.hsapiens.ucsc.hg19
+bioconductor-chromvar
+bioconductor-motifmatchr
+bioconductor-summarizedexperiment
 r-base=4.3.2
 r-broom
 r-DT
@@ -11,6 +16,7 @@ r-glue
 r-janitor
 r-knitr
 r-lubridate
+r-matrix
 r-plotly
 r-purrr
 r-RColorBrewer
