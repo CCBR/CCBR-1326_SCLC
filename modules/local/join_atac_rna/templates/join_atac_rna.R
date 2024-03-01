@@ -6,7 +6,7 @@ library(stringr)
 library(tidyr)
 main <- function(promoters_logfc = "${promoters_logfc}", rna_logfc = "${rna_logfc}",
                  outfile = "${outfile}", logfile = "${logfile}", cluster_id = "${meta.id}") {
-  dat_rna <- read_csv(rna_logfc) %>% rename(gene_name = `...1`)
+  dat_rna <- read_tsv(rna_logfc) %>% rename(gene_name = `...1`)
   dat_promoters <- read_tsv(promoters_logfc)
   genes_atac_rna <- dat_promoters %>%
     inner_join(dat_rna, by = "gene_name") %>%

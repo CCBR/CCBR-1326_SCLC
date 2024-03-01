@@ -10,9 +10,9 @@ process JOIN_PEAKS_PROMOTERS {
     tuple val(meta), path(atac_promoters), path(atac_logfc), path(rna_logfc)
 
     output:
-    tuple val(meta), path("*.tsv"), path(rna_logfc)
+    tuple val(meta), path("*.atac-promoters.tsv"), path(rna_logfc)
 
     script:
-    outfile = "${atac_promoters.baseName}.tsv"
+    outfile = "${atac_promoters.baseName}.atac-promoters.tsv"
     template 'join_peaks_promoters.R'
 }
