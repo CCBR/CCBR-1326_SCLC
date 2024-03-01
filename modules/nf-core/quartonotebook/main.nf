@@ -8,7 +8,7 @@ process QUARTONOTEBOOK {
     // required dependencies for your analyses. You'll at least need Quarto
     // itself, Papermill and whatever language you are running your analyses on;
     // you can see an example in this module's Dockerfile.
-    container "nciccbr/sclc_r-quarto:v0.1.1"
+    container "nciccbr/sclc_r-quarto:v0.2.0"
 
     input:
     tuple val(meta), path(notebook)
