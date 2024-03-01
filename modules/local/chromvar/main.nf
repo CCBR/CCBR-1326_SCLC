@@ -1,0 +1,19 @@
+process CHROMVAR {
+    cpus 16
+
+    container "nciccbr/sclc_r-quarto:v0.2.0"
+
+    input:
+        path(consensus_bed)
+        path(cluster_map)
+        path(bams)
+
+    output:
+        path('chromVAR.results*')
+
+    script:
+    bam_filenames = bams.join(',')
+    output_tsv = 'chromVAR.results.tsv'
+    output_rda = 'chromVAR.results.RData'
+    template 'chromvar.R'
+}

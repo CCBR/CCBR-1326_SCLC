@@ -7,10 +7,27 @@ include { JOIN_ATAC_RNA            } from './modules/local/join_atac_rna'
 include { COUNT_INTERSECT          } from './modules/local/count_intersect'
 include { ROWBIND as ROWBIND_COUNT;
           ROWBIND as ROWBIND_LOGFC } from './modules/local/rowbind'
-include { CAT_CAT                  } from './modules/CCBR/cat/cat/main'
-include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook/main'
+include { CAT_CAT                  } from './modules/CCBR/cat/cat'
+include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
+include { MATRIX_BED               } from './modules/local/matrix_bed'
+include { CHROMVAR                 } from './modules/local/chromvar'
 
 workflow {
+    ch_consensus_bed = Channel.fromPath(file(params.consensus_peak_matrix, checkIfExists: true)) |
+        MATRIX_BED
+
+    ch_cluster_map = Channel.fromPath(file(params.clusters, checkIfExists: true))
+
+    ch_bam = ch_cluster_map
+        .splitCsv(header: true, sep: '\t')
+        .map{[ it.bam ]}
+        .collect()
+
+    CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam)
+
+}
+
+workflow differential {
     input = Channel.fromPath(file(params.datasheet, checkIfExists: true))
         .splitCsv(header: true)
         .map {
@@ -39,7 +56,6 @@ workflow {
         .map{meta, file -> file}
         .collect()
         .map{ files -> [ [id: 'set_counts'], files ] }
-        .view()
         | ROWBIND_COUNT
 
     ch_atac_rna = JOIN_ATAC_RNA.out.tsv
