@@ -50,7 +50,7 @@ hg38:
   reffa: "/data/CCBR_Pipeliner/db/PipeDB/Indices/hg38_basic/hg38_basic.fa"
   gtf: "/data/CCBR_Pipeliner/db/PipeDB/Indices/GTFs/hg38/gencode.v30.annotation.gtf"
 hg19:
-  reffa: "/data/CCBR_Pipeliner/db/PipeDB/Indices/hg19_basic/hg19.fa"
+  reffa: "/data/CCBR_Pipeliner/db/PipeDB/Indices/hg19_basic/hg19.copy.fa"
   gtf: "/data/CCBR_Pipeliner/db/PipeDB/Indices/GTFs/hg19/gencode.v19.annotation.gtf"
 
 # blacklist BED file
