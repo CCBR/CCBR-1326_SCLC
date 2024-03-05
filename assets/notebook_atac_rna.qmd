@@ -250,6 +250,17 @@ ggplotly(
 ```
 
 
+### Overlap in HE-HA genes between clusters
+
+HE-HA: High Expression (RNAseq) and High Accessibility (ATACseq). Upper right quadrant of plots above.
+
+venn diagram comparing clusters
+
+then run clusterProfiler. need > 100 genes for good ORA call
+
+https://yulab-smu.top/biomedical-knowledge-mining-book/universal-api.html#msigdb-gsea
+
+use category C2 CP (curated gene sets - canonical patheays )
 
 ## Infer TF-gene regulatory network
 
