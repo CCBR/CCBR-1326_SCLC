@@ -126,12 +126,10 @@ diff_dat <- read_tsv(params$atac_rna_tsv) %>%
 alpha_level <- 0.05
 log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
 
-cor_logfc <- diff_dat %>% 
-    do(tidy(
-        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
-                 method = "spearman")
-    ))
-kable(cor_logfc)
+cor.test(diff_dat$log2FoldChange_atac, 
+         diff_dat$log2FoldChange_rna,
+         method = "spearman") %>% 
+    tidy() %>% kable()
 
 abs_max <- 5.004292 # from filtered data. this will exclude some points.
     
@@ -222,38 +220,21 @@ diff_dat_filt <- diff_dat %>%
   filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
 
-cor_logfc_filt <- diff_dat_filt %>% 
+cor_logfc <- diff_dat %>% 
     group_by(cluster_id) %>% 
     do(tidy(
         cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
                  method = "spearman")
     ))
-cor_logfc_filt
-#kable(cor_logfc)
-
+cor_logfc
+kable(cor_logfc)
 
 diff_dat_filt %>% 
-    select(cluster_id, starts_with('log2FoldChange_')) %>% 
     group_by(cluster_id) %>% 
-    nest(data = c(log2FoldChange_atac, log2FoldChange_rna)) %>% 
-    mutate(corr = map(data, ~ cor.test(.$log2FoldChange_atac, 
-                                       .$log2FoldChange_rna,
-                                       method = "spearman")),
-           corr_tidied = map(corr, tidy)
-           ) %>% 
-    unnest(cols = c(corr_tidied))
-
-filter_and_correlate <- function(df,cluster){
-  df %>% filter(cluster_id == cluster) -> df_filtered
-  ct <- cor.test(df_filtered$log2FoldChange_rna,df_filtered$log2FoldChange_atac,method="spearman")
-  return(ct)
-}
-ct1 <- filter_and_correlate(diff_dat_filt,"c1")
-ct1
-ct2 <- filter_and_correlate(diff_dat_filt,"c2")
-ct2
-ct3 <- filter_and_correlate(diff_dat_filt,"c3")
-ct3
+    do(tidy(
+        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
+                 method = "spearman")
+    ))
 
 lm_logfc <- diff_dat_filt %>% 
     group_by(cluster_id) %>% 
