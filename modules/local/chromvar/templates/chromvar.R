@@ -17,7 +17,7 @@ bed_filename <- "${consensus_bed}" # 'output/matrix_bed/raw_tmm_fpkm_batch_corre
 
 cluster_filename <- "${cluster_map}" # 'assets/cluster_membership.tsv'
 output_tsv <- "${output_tsv}" # 'tmp.tsv'
-output_rds <- "${output_rda}" # 'tmp.RData
+output_rds <- "${output_rda}" # 'tmp.RData'
 
 BiocParallel::register(BiocParallel::MulticoreParam(cpus, progressbar = TRUE))
 
@@ -25,8 +25,17 @@ cluster_dat <- read_tsv(cluster_filename) %>%
   mutate(filename = basename(bam))
 bam_filenames <- cluster_dat %>% pull(filename)
 
-peaks <- getPeaks(bed_filename, sort_peaks = TRUE) %>%
-  GenomicRanges::resize(width = 500, fix = "center")
+peaks <- getPeaks(bed_filename, sort_peaks = TRUE)
+seqinfo(peaks) <- seqinfo(BSgenome.Hsapiens.UCSC.hg19)
+peaks <- peaks %>%
+  # resize can cause peaks to go over end of chromosomes
+  GenomicRanges::resize(width = 500, fix = "center") %>%
+  # trim down any peaks beyond end of chromosome
+  GenomicRanges::trim()
+
+# chromosomes with overflow
+which(end(peaks) > seqlengths(BSgenome.Hsapiens.UCSC.hg19)[as.character(seqnames(peaks))])
+GenomicRanges:::get_out_of_bound_index(peaks)
 
 fragment_counts <- getCounts(bam_filenames,
   peaks,
@@ -47,7 +56,7 @@ fragment_counts <- addGCBias(fragment_counts,
   genome = BSgenome.Hsapiens.UCSC.hg19
 )
 rowData(fragment_counts)
-hist(rowData(fragment_counts)["bias"])
+hist(rowData(fragment_counts)[["bias"]])
 
 # create background peaks with the same GC bias
 bground <- getBackgroundPeaks(object = fragment_counts)
@@ -73,7 +82,7 @@ variability <- computeVariability(dev)
 plotVariability(variability, use_plotly = FALSE)
 
 vdf <- as.data.frame(variability)
-devzdf <- as.data.frame(assays(dev)["z"])
+devzdf <- as.data.frame(assays(dev)[["z"]])
 rownames_to_column(vdf, var = "motif") -> vdf
 vdf <- vdf[order(vdf["p_value_adj"], -vdf["variability"]), ]
 rownames_to_column(devzdf, var = "motif") -> devzdf
