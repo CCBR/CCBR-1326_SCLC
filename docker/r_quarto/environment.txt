@@ -7,6 +7,7 @@ bioconductor-motifmatchr
 bioconductor-summarizedexperiment
 r-base=4.3.2
 r-broom
+r-complexupset
 r-DT
 r-dplyr
 r-doFuture
