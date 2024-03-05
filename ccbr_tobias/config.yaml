@@ -18,6 +18,7 @@ uropabaseyaml: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool
 
 containers:
   tobias: "docker://nciccbr/ccbr_tobias:v2"
+  base: "docker://nciccbr/ccbr_ubuntu_base_20.04:v6"
 
 # samples are entered in the following format:
 # data:
@@ -55,6 +56,9 @@ hg19:
 
 # blacklist BED file
 blacklist: ""
+
+# choose PFMs to use for motif to gene mapping prior to creating the TF binding network
+pfm: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/resources/JASPAR2024_CORE_non-redundant_pfms_jaspar.txt"
 
 # choose the motifs database to use
 motifs: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/.v0.3/resources/HOCOMOCOv11_HUMAN_core_motifs.txt"
