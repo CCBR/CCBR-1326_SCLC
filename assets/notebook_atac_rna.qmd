@@ -29,6 +29,7 @@ library(ggVennDiagram)
 library(glue)
 library(knitr)
 library(plotly)
+library(purrr)
 library(readr)
 library(scales)
 library(stringr)
@@ -43,14 +44,6 @@ theme_sovacool <- ggplot2::theme_bw() +
       strip.placement = 'outside'
     )
 theme_set(theme_sovacool)
-```
-
-
-
-```{r read}
-#| message: false
-dat <- read_tsv(params$atac_rna_tsv) %>% 
-    mutate(cluster_id = as.factor(cluster_id))
 ```
 
 
@@ -121,40 +114,38 @@ Inspiration
 - Fig. 4B from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 - Fig. 2A-B from <https://epigeneticsandchromatin.biomedcentral.com/articles/10.1186/s13072-019-0260-2/figures/2>
 
+
+```{r read}
+#| message: false
+diff_dat <- read_tsv(params$atac_rna_tsv) %>% 
+    mutate(cluster_id = as.factor(cluster_id))
+```
+
+
 ```{r corr_all_genes}
 alpha_level <- 0.05
 log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
 
-cor_logfc <- dat %>% 
+cor_logfc <- diff_dat %>% 
     do(tidy(
         cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
                  method = "spearman")
     ))
 kable(cor_logfc)
+
+abs_max <- 5.004292 # from filtered data. this will exclude some points.
     
-min_max <- list(min = ~ min(.x, na.rm = TRUE),
-                max = ~ max(.x, na.rm = TRUE))
-abs_max <- dat %>%
-    summarize(across(starts_with('log2FoldChange'), min_max)) %>%
-    as.list() %>% unname() %>% unlist() %>% abs() %>% max()
-corr_line_plot_all <- dat %>%
+diff_dat %>%
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
-    mutate(signif = case_when(pvalue_atac < alpha_level & pvalue_rna < alpha_level ~ 'both',
-                              pvalue_atac < 0.05 ~ 'ATAC',
-                              pvalue_rna < 0.05 ~ 'RNA',
-                              TRUE ~ 'none')) %>% 
+    mutate(signif = case_when(
+        pvalue_atac < alpha_level & pvalue_rna < alpha_level ~ TRUE,
+        TRUE ~ FALSE)
+    ) %>%
+    dplyr::arrange(signif) %>% # plot true on top of false
     ggplot(
         aes(
             y = log2FoldChange_atac,
-            x = log2FoldChange_rna,
-            fill = signif,
-            text = glue(
-                'gene name:\t{gene_name}',
-                'cluster:\t{cluster_id}',
-                'ATAC log2(FC):\t{log2FoldChange_atac}',
-                'RNA log2(FC):\t{log2FoldChange_rna}',
-                .sep = '\n'
-            )
+            x = log2FoldChange_rna
         )
     ) +
     geom_hline(
@@ -167,20 +158,18 @@ corr_line_plot_all <- dat %>%
         linetype = 'dashed',
         color = 'darkgrey'
     ) +
-    geom_point(alpha = 0.5, shape = 21, stroke = 0) +
-    geom_smooth(color="black", linewidth = 0.5, method=lm, se=FALSE) +
-    scale_fill_viridis_d() +
-    guides(fill = guide_legend(title = glue('pvalue < {alpha_level}'))) +
+    geom_point(aes(fill = signif), alpha = 0.7, shape = 21, stroke = 0) +
+    geom_smooth(method = lm, 
+                linewidth = 0.5,
+                se = FALSE, show.legend = FALSE) +
+    scale_fill_manual(values = c(`TRUE` = "#252525", `FALSE` = "#D9D9D9")) +
+    guides(fill = guide_legend(title = glue('ATAC & RNA\np-values < {alpha_level}'))) +
     lims(x = c(-abs_max, abs_max),
          y = c(-abs_max, abs_max)) +
     labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
-ggplotly(
-  corr_line_plot_all, 
-  tooltip = 'text'
- )
 ```
 
-### filtered to pvalue < `r alpha_level`
+### filtered to p-value < `r alpha_level`
 
 ```{r corr_signif_genes}
 
@@ -229,25 +218,52 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
 }
 
 
-dat_filt <- dat %>% 
+diff_dat_filt <- diff_dat %>% 
   filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
 
-cor_logfc <- dat_filt %>% 
-    group_by(cluster_id) %>%
+cor_logfc_filt <- diff_dat_filt %>% 
+    group_by(cluster_id) %>% 
     do(tidy(
         cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
                  method = "spearman")
     ))
-kable(cor_logfc)
-lm_logfc <- dat_filt %>% group_by(cluster_id) %>%
+cor_logfc_filt
+#kable(cor_logfc)
+
+
+diff_dat_filt %>% 
+    select(cluster_id, starts_with('log2FoldChange_')) %>% 
+    group_by(cluster_id) %>% 
+    nest(data = c(log2FoldChange_atac, log2FoldChange_rna)) %>% 
+    mutate(corr = map(data, ~ cor.test(.$log2FoldChange_atac, 
+                                       .$log2FoldChange_rna,
+                                       method = "spearman")),
+           corr_tidied = map(corr, tidy)
+           ) %>% 
+    unnest(cols = c(corr_tidied))
+
+filter_and_correlate <- function(df,cluster){
+  df %>% filter(cluster_id == cluster) -> df_filtered
+  ct <- cor.test(df_filtered$log2FoldChange_rna,df_filtered$log2FoldChange_atac,method="spearman")
+  return(ct)
+}
+ct1 <- filter_and_correlate(diff_dat_filt,"c1")
+ct1
+ct2 <- filter_and_correlate(diff_dat_filt,"c2")
+ct2
+ct3 <- filter_and_correlate(diff_dat_filt,"c3")
+ct3
+
+lm_logfc <- diff_dat_filt %>% 
+    group_by(cluster_id) %>% 
     do(tidy(lm(
         log2FoldChange_atac ~ log2FoldChange_rna, .
     )))
 
 
 ggplotly(
-  dat_filt %>% plot_corr_line(plot_lm = TRUE), 
+  diff_dat_filt %>% plot_corr_line(plot_lm = TRUE), 
   tooltip = 'text'
  )
 ```
