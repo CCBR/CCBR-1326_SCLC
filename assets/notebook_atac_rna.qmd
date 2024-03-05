@@ -29,6 +29,7 @@ library(ggVennDiagram)
 library(glue)
 library(knitr)
 library(plotly)
+library(purrr)
 library(readr)
 library(scales)
 library(stringr)
@@ -46,14 +47,6 @@ theme_set(theme_sovacool)
 ```
 
 
-
-```{r read}
-#| message: false
-dat <- read_tsv(params$atac_rna_tsv) %>% 
-    mutate(cluster_id = as.factor(cluster_id))
-```
-
-
 ## Differential ATAC & RNAseq 
 
 ### Overlapping genes
@@ -62,7 +55,7 @@ Differential ATACseq peaks were intersected with known gene promoter regions.
 Peaks that overlap promoter regions were kept and joined with the corresponding
 differential gene expression data from RNAseq.
 
-<!--
+
 Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 
 ```{r plot_venn}
@@ -84,7 +77,7 @@ Venn(venn_dat) %>%
     theme(legend.position = 'none')
 
 ```
--->
+
 
 Inspired by Fig. 3B-C from <https://www.science.org/doi/10.1126/science.abe1505#F3>
 
@@ -121,7 +114,62 @@ Inspiration
 - Fig. 4B from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 - Fig. 2A-B from <https://epigeneticsandchromatin.biomedcentral.com/articles/10.1186/s13072-019-0260-2/figures/2>
 
-```{r plot_corr_line}
+
+```{r read}
+#| message: false
+diff_dat <- read_tsv(params$atac_rna_tsv) %>% 
+    mutate(cluster_id = as.factor(cluster_id))
+```
+
+
+```{r corr_all_genes}
+alpha_level <- 0.05
+log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
+
+cor.test(diff_dat$log2FoldChange_atac, 
+         diff_dat$log2FoldChange_rna,
+         method = "spearman") %>% 
+    tidy() %>% kable()
+
+abs_max <- 5.004292 # from filtered data. this will exclude some points.
+    
+diff_dat %>%
+    mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
+    mutate(signif = case_when(
+        pvalue_atac < alpha_level & pvalue_rna < alpha_level ~ TRUE,
+        TRUE ~ FALSE)
+    ) %>%
+    dplyr::arrange(signif) %>% # plot true on top of false
+    ggplot(
+        aes(
+            y = log2FoldChange_atac,
+            x = log2FoldChange_rna
+        )
+    ) +
+    geom_hline(
+        yintercept = 0,
+        linetype = 'dashed',
+        color = 'darkgrey'
+    ) +
+    geom_vline(
+        xintercept = 0,
+        linetype = 'dashed',
+        color = 'darkgrey'
+    ) +
+    geom_point(aes(fill = signif), alpha = 0.7, shape = 21, stroke = 0) +
+    geom_smooth(method = lm, 
+                linewidth = 0.5,
+                se = FALSE, show.legend = FALSE) +
+    scale_fill_manual(values = c(`TRUE` = "#252525", `FALSE` = "#D9D9D9")) +
+    guides(fill = guide_legend(title = glue('ATAC & RNA\np-values < {alpha_level}'))) +
+    lims(x = c(-abs_max, abs_max),
+         y = c(-abs_max, abs_max)) +
+    labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
+```
+
+### filtered to p-value < `r alpha_level`
+
+```{r corr_signif_genes}
 
 plot_corr_line <- function(dat, plot_lm = FALSE) {
     
@@ -158,7 +206,7 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
             color = 'darkgrey'
         ) +
         geom_point(alpha = 0.5) +
-        {if (isTRUE(plot_lm)) geom_smooth(size = 0.5, method=lm, se=FALSE) }+
+        {if (isTRUE(plot_lm)) geom_smooth(linewidth = 0.5, method=lm, se=FALSE) } +
         scale_color_viridis_d() +
         guides(color = guide_legend(title = 'cluster')) +
         lims(x = c(-abs_max, abs_max),
@@ -167,32 +215,40 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
     return(corr_line_plot)
 }
 
-plot_corr_line(dat)
 
-alpha_level <- 0.05
-log2fc_thresh <- 0 # 1
-dat_filt <- dat %>% 
+diff_dat_filt <- diff_dat %>% 
   filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
 
-cor_logfc <- dat_filt %>% 
-    group_by(cluster_id) %>%
+cor_logfc <- diff_dat %>% 
+    group_by(cluster_id) %>% 
     do(tidy(
         cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
                  method = "spearman")
     ))
+cor_logfc
 kable(cor_logfc)
-lm_logfc <- dat_filt %>% group_by(cluster_id) %>%
+
+diff_dat_filt %>% 
+    group_by(cluster_id) %>% 
+    do(tidy(
+        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
+                 method = "spearman")
+    ))
+
+lm_logfc <- diff_dat_filt %>% 
+    group_by(cluster_id) %>% 
     do(tidy(lm(
         log2FoldChange_atac ~ log2FoldChange_rna, .
     )))
 
 
-ggplotly(dat_filt %>% 
-  plot_corr_line(plot_lm = TRUE), 
+ggplotly(
+  diff_dat_filt %>% plot_corr_line(plot_lm = TRUE), 
   tooltip = 'text'
  )
 ```
+
 
 
 ## Infer TF-gene regulatory network
