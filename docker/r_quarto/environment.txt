@@ -20,6 +20,7 @@ r-janitor
 r-knitr
 r-lubridate
 r-matrix
+r-patchwork
 r-plotly
 r-purrr
 r-RColorBrewer
