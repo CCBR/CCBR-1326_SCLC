@@ -28,6 +28,7 @@ library(ggplot2)
 library(ggVennDiagram)
 library(glue)
 library(knitr)
+library(patchwork)
 library(plotly)
 library(purrr)
 library(readr)
@@ -171,10 +172,10 @@ diff_dat %>%
 
 ```{r corr_signif_genes}
 
+min_max <- list(min = ~ min(.x, na.rm = TRUE),
+                max = ~ max(.x, na.rm = TRUE))
 plot_corr_line <- function(dat, plot_lm = FALSE) {
     
-    min_max <- list(min = ~ min(.x, na.rm = TRUE),
-                    max = ~ max(.x, na.rm = TRUE))
     abs_max <- dat %>%
         summarize(across(starts_with('log2FoldChange'), min_max)) %>%
         as.list() %>% unname() %>% unlist() %>% abs() %>% max()
@@ -249,14 +250,93 @@ ggplotly(
  )
 ```
 
+### Overlap significant genes
 
-### Overlap in HE-HA genes between clusters
+#### between clusters
 
-HE-HA: High Expression (RNAseq) and High Accessibility (ATACseq). Upper right quadrant of plots above.
+```{r signif_genes_overlap}
+gene_lists <- diff_dat_filt %>% 
+    select(gene_name, cluster_id) %>% 
+    dplyr::distinct() %>% 
+    arrange(gene_name) %>% unstack()
 
-venn diagram comparing clusters
+Venn(gene_lists) %>% 
+    process_data() %>% 
+    plot_venn() +
+    scale_fill_viridis_c() +
+    theme(legend.position = 'none')
+```
 
-then run clusterProfiler. need > 100 genes for good ORA call
+#### between expression-accessibility bins
+
+```{r gene_quadrants}
+diff_dat_filt_cat <- diff_dat_filt %>% 
+    mutate(category = case_when(
+        log2FoldChange_rna > 0 & log2FoldChange_atac > 0 ~ 'HE-HA',
+        log2FoldChange_rna > 0 & log2FoldChange_atac < 0 ~ 'HE-LA',
+        log2FoldChange_rna < 0 & log2FoldChange_atac > 0 ~ 'LE-HA',
+        log2FoldChange_rna < 0 & log2FoldChange_atac < 0 ~ 'LE-LA',
+        TRUE ~ NA_character_
+    ))
+
+diff_dat_filt_cat %>% 
+    select(gene_name, category) %>% 
+    dplyr::distinct() %>% 
+    arrange(gene_name) %>% 
+    unstack() %>% 
+    Venn() %>% 
+    process_data() %>% 
+    plot_venn() +
+    scale_fill_viridis_c() +
+    theme(legend.position = 'none')
+
+```
+
+#### Overlap in expression & accessbility between clusters
+
+- HE-HA: High Expression (RNAseq) and High Accessibility (ATACseq)
+- LE-LA: Low Expression (RNAseq) and Low Accessibility (ATACseq)
+
+```{r he-ha_genes, width='100%'}
+plot_venn_categories <- function(dat, expr_category = 'HE-HA') {
+  dat %>% 
+    filter(category == expr_category) %>%
+    select(gene_name, cluster_id) %>% 
+    dplyr::distinct() %>% 
+    arrange(gene_name) %>% 
+    unstack() %>% 
+    Venn() %>% 
+    process_data() %>% 
+    plot_venn() +
+    scale_fill_viridis_c() +
+    labs(title = expr_category) +
+    theme(legend.position = 'none')
+}
+categories <- diff_dat_filt_cat %>% pull(category) %>% unique()
+plots <- map(categories, plot_venn_categories, dat = diff_dat_filt_cat)
+
+plot_grid <- ggplot() +
+    geom_hline(yintercept = 0,
+               linetype = 'dashed',
+               color = 'darkgrey') +
+    geom_vline(xintercept = 0,
+               linetype = 'dashed',
+               color = 'darkgrey') +
+    scale_x_continuous(breaks = c(0)) +
+    scale_y_continuous(breaks = c(0)) +
+    labs(x = 'Expression (RNA)', y = 'Accessibility (ATAC)') +
+    theme(axis.line = element_line(arrow = grid::arrow()))
+# use patchwork to compose single plot
+plot_grid +
+    inset_element(plots[[3]], left = 0, bottom = 0.5, right = 0.5, top = 1) +
+    inset_element(plots[[1]], left = 0.5, bottom = 0.5, right = 1, top = 1) +
+    inset_element(plots[[4]], left = 0.5, bottom = 0, right = 1, top = 0.5) +
+    inset_element(plots[[2]], left = 0, bottom = 0, right = 0.5, top = 0.5)
+```
+
+### Enrichment analysis
+
+TODO run clusterProfiler. need > 100 genes for good ORA call
 
 https://yulab-smu.top/biomedical-knowledge-mining-book/universal-api.html#msigdb-gsea
 
