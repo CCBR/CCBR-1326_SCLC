@@ -1,6 +1,7 @@
 bioconductor-biocparallel
 bioconductor-bsgenome.hsapiens.ucsc.hg19
 bioconductor-chromvar
+bioconductor-clusterprofiler
 bioconductor-jaspar2016
 bioconductor-motifmatchr
 bioconductor-summarizedexperiment
