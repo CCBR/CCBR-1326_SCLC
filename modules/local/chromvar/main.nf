@@ -1,7 +1,7 @@
 process CHROMVAR {
     cpus 16
 
-    container "nciccbr/sclc_r-quarto:v0.2.0"
+    container "nciccbr/sclc_r-quarto:v0.2.1"
 
     input:
         path(consensus_bed)
