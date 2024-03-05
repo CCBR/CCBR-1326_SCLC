@@ -3,7 +3,7 @@
 # The working dir... output will be in the results subfolder of the workdir
 workdir: "/gpfs/gsfs10/users/SCLCgenomics/sovacoolkl/CCBR-1326/ccbr_tobias"
 # to use the workdir version of cluster.json comment out the following line
-clusterjson: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/config/cluster.json"
+#clusterjson: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/config/cluster.json"
 # define scripts/resource folders ... if you curated your own please add them here
 resourcesdir: "/gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/resources" # defaults to /gpfs/gsfs10/users/CCBR_Pipeliner/Pipelines/CCBR_tobias/sovacool-dev-tobias/resources
 # scripts folder is copied over to the workdir from pipeline_home.
