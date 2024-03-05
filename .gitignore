@@ -5,6 +5,6 @@ work/
 .nextflow*
 assets/tss_bed
 .Rproj.user
-
+.xdg_cache_home/
 .DS_Store
 /.quarto/
