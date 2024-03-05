@@ -62,7 +62,7 @@ Differential ATACseq peaks were intersected with known gene promoter regions.
 Peaks that overlap promoter regions were kept and joined with the corresponding
 differential gene expression data from RNAseq.
 
-<!--
+
 Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 
 ```{r plot_venn}
@@ -84,7 +84,7 @@ Venn(venn_dat) %>%
     theme(legend.position = 'none')
 
 ```
--->
+
 
 Inspired by Fig. 3B-C from <https://www.science.org/doi/10.1126/science.abe1505#F3>
 
@@ -121,7 +121,68 @@ Inspiration
 - Fig. 4B from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 - Fig. 2A-B from <https://epigeneticsandchromatin.biomedcentral.com/articles/10.1186/s13072-019-0260-2/figures/2>
 
-```{r plot_corr_line}
+```{r corr_all_genes}
+alpha_level <- 0.05
+log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
+
+cor_logfc <- dat %>% 
+    do(tidy(
+        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
+                 method = "spearman")
+    ))
+kable(cor_logfc)
+    
+min_max <- list(min = ~ min(.x, na.rm = TRUE),
+                max = ~ max(.x, na.rm = TRUE))
+abs_max <- dat %>%
+    summarize(across(starts_with('log2FoldChange'), min_max)) %>%
+    as.list() %>% unname() %>% unlist() %>% abs() %>% max()
+corr_line_plot_all <- dat %>%
+    mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
+    mutate(signif = case_when(pvalue_atac < alpha_level & pvalue_rna < alpha_level ~ 'both',
+                              pvalue_atac < 0.05 ~ 'ATAC',
+                              pvalue_rna < 0.05 ~ 'RNA',
+                              TRUE ~ 'none')) %>% 
+    ggplot(
+        aes(
+            y = log2FoldChange_atac,
+            x = log2FoldChange_rna,
+            fill = signif,
+            text = glue(
+                'gene name:\t{gene_name}',
+                'cluster:\t{cluster_id}',
+                'ATAC log2(FC):\t{log2FoldChange_atac}',
+                'RNA log2(FC):\t{log2FoldChange_rna}',
+                .sep = '\n'
+            )
+        )
+    ) +
+    geom_hline(
+        yintercept = 0,
+        linetype = 'dashed',
+        color = 'darkgrey'
+    ) +
+    geom_vline(
+        xintercept = 0,
+        linetype = 'dashed',
+        color = 'darkgrey'
+    ) +
+    geom_point(alpha = 0.5, shape = 21, stroke = 0) +
+    geom_smooth(color="black", linewidth = 0.5, method=lm, se=FALSE) +
+    scale_fill_viridis_d() +
+    guides(fill = guide_legend(title = glue('pvalue < {alpha_level}'))) +
+    lims(x = c(-abs_max, abs_max),
+         y = c(-abs_max, abs_max)) +
+    labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
+ggplotly(
+  corr_line_plot_all, 
+  tooltip = 'text'
+ )
+```
+
+### filtered to pvalue < `r alpha_level`
+
+```{r corr_signif_genes}
 
 plot_corr_line <- function(dat, plot_lm = FALSE) {
     
@@ -158,7 +219,7 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
             color = 'darkgrey'
         ) +
         geom_point(alpha = 0.5) +
-        {if (isTRUE(plot_lm)) geom_smooth(size = 0.5, method=lm, se=FALSE) }+
+        {if (isTRUE(plot_lm)) geom_smooth(linewidth = 0.5, method=lm, se=FALSE) } +
         scale_color_viridis_d() +
         guides(color = guide_legend(title = 'cluster')) +
         lims(x = c(-abs_max, abs_max),
@@ -167,10 +228,7 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
     return(corr_line_plot)
 }
 
-plot_corr_line(dat)
 
-alpha_level <- 0.05
-log2fc_thresh <- 0 # 1
 dat_filt <- dat %>% 
   filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
@@ -188,11 +246,12 @@ lm_logfc <- dat_filt %>% group_by(cluster_id) %>%
     )))
 
 
-ggplotly(dat_filt %>% 
-  plot_corr_line(plot_lm = TRUE), 
+ggplotly(
+  dat_filt %>% plot_corr_line(plot_lm = TRUE), 
   tooltip = 'text'
  )
 ```
+
 
 
 ## Infer TF-gene regulatory network
