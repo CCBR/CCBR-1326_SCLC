@@ -8,3 +8,4 @@ assets/tss_bed
 .xdg_cache_home/
 .DS_Store
 /.quarto/
+/assets/*.html
