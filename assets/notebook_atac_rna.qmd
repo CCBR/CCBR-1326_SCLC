@@ -59,6 +59,7 @@ differential gene expression data from RNAseq.
 
 Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 
+
 ```{r plot_venn}
 #| message: false
 v <- read_delim(params$atac_rna_venn, delim = ':\t', 
@@ -127,12 +128,17 @@ diff_dat <- read_tsv(params$atac_rna_tsv) %>%
 alpha_level <- 0.05
 log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
 
-cor.test(diff_dat$log2FoldChange_atac, 
+cor_logfc <-  cor.test(diff_dat$log2FoldChange_atac, 
          diff_dat$log2FoldChange_rna,
          method = "spearman") %>% 
-    tidy() %>% kable()
+    tidy()
+cor_logfc %>% kable()
 
-abs_max <- 5.004292 # from filtered data. this will exclude some points.
+lm_logfc <- diff_dat %>%
+    lm(log2FoldChange_atac ~ log2FoldChange_rna, .) 
+lm_rsq <- summary(lm_logfc)$r.squared
+
+abs_max <- 5.004292 # from filtered data below. this will exclude some points from the unfiltered data.
     
 diff_dat %>%
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
@@ -227,15 +233,7 @@ cor_logfc <- diff_dat %>%
         cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
                  method = "spearman")
     ))
-cor_logfc
 kable(cor_logfc)
-
-diff_dat_filt %>% 
-    group_by(cluster_id) %>% 
-    do(tidy(
-        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
-                 method = "spearman")
-    ))
 
 lm_logfc <- diff_dat_filt %>% 
     group_by(cluster_id) %>% 
@@ -257,8 +255,8 @@ ggplotly(
 ```{r signif_genes_overlap}
 gene_lists <- diff_dat_filt %>% 
     select(gene_name, cluster_id) %>% 
-    dplyr::distinct() %>% 
-    arrange(gene_name) %>% unstack()
+    arrange(gene_name) %>% 
+    unstack()
 
 Venn(gene_lists) %>% 
     process_data() %>% 
@@ -281,7 +279,6 @@ diff_dat_filt_cat <- diff_dat_filt %>%
 
 diff_dat_filt_cat %>% 
     select(gene_name, category) %>% 
-    dplyr::distinct() %>% 
     arrange(gene_name) %>% 
     unstack() %>% 
     Venn() %>% 
@@ -302,7 +299,6 @@ plot_venn_categories <- function(dat, expr_category = 'HE-HA') {
   dat %>% 
     filter(category == expr_category) %>%
     select(gene_name, cluster_id) %>% 
-    dplyr::distinct() %>% 
     arrange(gene_name) %>% 
     unstack() %>% 
     Venn() %>% 
@@ -312,7 +308,7 @@ plot_venn_categories <- function(dat, expr_category = 'HE-HA') {
     labs(title = expr_category) +
     theme(legend.position = 'none')
 }
-categories <- diff_dat_filt_cat %>% pull(category) %>% unique()
+categories <- diff_dat_filt_cat %>% pull(category) %>% unique() %>% sort()
 plots <- map(categories, plot_venn_categories, dat = diff_dat_filt_cat)
 
 plot_grid <- ggplot() +
@@ -328,10 +324,10 @@ plot_grid <- ggplot() +
     theme(axis.line = element_line(arrow = grid::arrow()))
 # use patchwork to compose single plot
 plot_grid +
-    inset_element(plots[[3]], left = 0, bottom = 0.5, right = 0.5, top = 1) +
-    inset_element(plots[[1]], left = 0.5, bottom = 0.5, right = 1, top = 1) +
-    inset_element(plots[[4]], left = 0.5, bottom = 0, right = 1, top = 0.5) +
-    inset_element(plots[[2]], left = 0, bottom = 0, right = 0.5, top = 0.5)
+    inset_element(plots[[1]], left = 0.5, bottom = 0.5, right = 1, top = 1) + # upper right
+    inset_element(plots[[3]], left = 0, bottom = 0.5, right = 0.5, top = 1) + # upper left
+    inset_element(plots[[2]], left = 0.5, bottom = 0, right = 1, top = 0.5) + # lower right
+    inset_element(plots[[4]], left = 0, bottom = 0, right = 0.5, top = 0.5)   # lower left
 ```
 
 ### Enrichment analysis
