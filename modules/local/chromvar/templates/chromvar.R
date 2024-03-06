@@ -1,20 +1,23 @@
 #!/usr/bin/env Rscript
+# bioconductor packages
 library(chromVAR)
 library(motifmatchr)
-library(Matrix)
 library(SummarizedExperiment)
 library(BiocParallel)
 library(BSgenome.Hsapiens.UCSC.hg19)
+# tidyverse packages
 library(dplyr)
 library(readr)
 library(stringr)
+library(tibble)
+# other cran packages
+library(Matrix)
 
 set.seed(2017)
 
 # variables set via nextflow template
 cpus <- as.integer("${task.cpus}") # 4
 bed_filename <- "${consensus_bed}" # 'output/matrix_bed/raw_tmm_fpkm_batch_corrected_PDX_only.bed'
-
 cluster_filename <- "${cluster_map}" # 'assets/cluster_membership.tsv'
 output_tsv <- "${output_tsv}" # 'tmp.tsv'
 output_rds <- "${output_rda}" # 'tmp.RData'
@@ -84,7 +87,7 @@ plotVariability(variability, use_plotly = FALSE)
 vdf <- as.data.frame(variability)
 devzdf <- as.data.frame(assays(dev)[["z"]])
 rownames_to_column(vdf, var = "motif") -> vdf
-vdf <- vdf[order(vdf["p_value_adj"], -vdf["variability"]), ]
+vdf <- vdf[order(vdf[["p_value_adj"]], -vdf[["variability"]]), ]
 rownames_to_column(devzdf, var = "motif") -> devzdf
 df <- merge(vdf, devzdf, by = "motif")
 write.table(df, file = output_filename, row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
@@ -93,6 +96,5 @@ topmotifs <- head(vdf["motif"], 100)
 topdevzdf <- devzdf[(devzdf["motif"] %in% topmotifs), ]
 rownames(topdevzdf) <- NULL
 column_to_rownames(as.data.frame(topdevzdf), var = "motif") -> topdevzdf
-heatmap(as.matrix(topdevzdf))
 
 save.image(output_rda)
