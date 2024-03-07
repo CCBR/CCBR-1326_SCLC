@@ -90,7 +90,7 @@ rownames_to_column(vdf, var = "motif") -> vdf
 vdf <- vdf[order(vdf[["p_value_adj"]], -vdf[["variability"]]), ]
 rownames_to_column(devzdf, var = "motif") -> devzdf
 df <- merge(vdf, devzdf, by = "motif")
-write.table(df, file = output_filename, row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+write.table(df, file = output_tsv, row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
 
 topmotifs <- head(vdf["motif"], 100)
 topdevzdf <- devzdf[(devzdf["motif"] %in% topmotifs), ]
