@@ -81,6 +81,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 # install rgt
 RUN pip install RGT
 RUN rgt-hint --help
+WORKDIR ~/rgtdata
+RUN pwd && ls
+RUN python setupGenomicdata.py --hg19
 
 # Save Dockerfile in the docker
 COPY Dockerfile /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}
