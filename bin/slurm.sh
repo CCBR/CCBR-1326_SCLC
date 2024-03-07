@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#SBATCH --cpus-per-task=56
-#SBATCH --mem=220g
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=20g
 #SBATCH --time=1-00:00:00
 #SBATCH --parsable
 #SBATCH -J "ccbr-1326"
@@ -11,4 +11,4 @@
 module load nextflow
 NXF_SINGULARITY_CACHEDIR=/data/CCBR_Pipeliner/SIFS
 
-nextflow run main.nf -resume
+nextflow run main.nf -profile biowulf,slurm -resume
