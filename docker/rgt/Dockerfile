@@ -8,9 +8,6 @@ ENV BUILD_TAG=${BUILD_TAG}
 ARG REPONAME="000000"
 ENV REPONAME=${REPONAME}
 
-ARG QUARTO_VERSION="1.4.550"
-ENV QUARTO_VERSION=${QUARTO_VERSION}
-
 RUN mkdir -p /opt2 && mkdir -p /data2
 ENV TZ=America/New_York
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -78,9 +75,15 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 	zlib1g-dev \
 	zlibc
 
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 # install rgt
+# rgt installs files to the home dir :(
+ENV HOME /data2/rgt/
 RUN pip install RGT
 RUN rgt-hint --help
+WORKDIR /data2/rgt/rgtdata
+RUN python setupGenomicData.py --hg19
 
 # Save Dockerfile in the docker
 COPY Dockerfile /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}

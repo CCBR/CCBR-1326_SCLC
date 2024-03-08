@@ -11,6 +11,7 @@ include { CAT_CAT                  } from './modules/CCBR/cat/cat'
 include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
 include { MATRIX_BED               } from './modules/local/matrix_bed'
 include { CHROMVAR                 } from './modules/local/chromvar'
+include { HINT_FOOTPRINTING     } from './modules/local/rgt/hint/footprinting'
 
 workflow {
     ch_consensus_bed = Channel.fromPath(file(params.consensus_peak_matrix, checkIfExists: true)) |
@@ -20,10 +21,26 @@ workflow {
 
     ch_bam = ch_cluster_map
         .splitCsv(header: true, sep: '\t')
-        .map{[ it.bam ]}
-        .collect()
+        .map{ it ->
+            bam = file(it.bam, checkIfExists: true)
+            bai = file("${bam}.bai", checkIfExists: true)
+            [ [ id: it.sampleName, cluster: it.clusterName ], bam, bai ]
+        }
 
-    CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam)
+    CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam.map{meta, bam, bai -> bam}.collect())
+
+    RGT(ch_consensus_bed, ch_bam)
+}
+
+workflow RGT {
+    take:
+        ch_consensus_bed
+        ch_bam
+
+    main:
+        ch_rgtdata = Channel.fromPath(file(params.rgtdata)).collect()
+        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
+
 
 }
 
@@ -66,7 +83,7 @@ workflow differential {
 
     qmd_params = ch_atac_rna.combine(ROWBIND_COUNT.out.tsv)
         .map{file1, file2 -> [ 'atac_rna_tsv': file1.toString(), 'set_counts_tsv': file2.toString() ]}
-    qmd_inputs = ch_atac_rna.mix(ROWBIND_COUNT.out.tsv).collect().view()
+    qmd_inputs = ch_atac_rna.mix(ROWBIND_COUNT.out.tsv).collect()
     QUARTONOTEBOOK([[id: 'atac_rna_clusters'], file(params.notebook_atac_rna, checkIfExists: true)],
                    qmd_params,
                    qmd_inputs,

@@ -21,9 +21,9 @@
     "time": "48:00:00"
   },
   "atacorrect": {
-    "mem": "1500g",
+    "mem": "500g",
     "threads": "72",
-    "time": "10-00:00:00",
+    "time": "2-00:00:00",
     "partition": "largemem"
   },
   "gzip_beds": {
@@ -39,6 +39,11 @@
   "bindetect": {
     "mem": "200g",
     "threads": "56",
+    "time": "96:00:00"
+  },
+  "create_network": {
+    "mem": "200g",
+    "threads": "1",
     "time": "96:00:00"
   },
   "join_bound": {
