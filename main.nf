@@ -27,7 +27,7 @@ workflow {
             [ [ id: it.sampleName, cluster: it.clusterName ], bam, bai ]
         }
 
-    CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam.map{meta, bam -> bam}.collect())
+    CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam.map{meta, bam, bai -> bam}.collect())
 
     RGT(ch_consensus_bed, ch_bam)
 }
