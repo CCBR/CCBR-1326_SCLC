@@ -1,5 +1,7 @@
 process CHROMVAR {
     cpus 16
+    memory '16 GB'
+    time '24 h'
 
     container "nciccbr/sclc_r-quarto:v0.2.1"
 
