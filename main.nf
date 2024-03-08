@@ -39,7 +39,7 @@ workflow RGT {
 
     main:
         ch_rgtdata = Channel.fromPath(file(params.rgtdata)).collect()
-        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed).first(), ch_rgtdata)
+        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
 
 
 }
