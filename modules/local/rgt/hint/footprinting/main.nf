@@ -1,5 +1,6 @@
 process HINT_FOOTPRINTING {
     //container "nciccbr/sclc_rgt:v0.1.0"
+    module 'rgt'
     cpus 32
     memory '32 GB'
     time '12 h'

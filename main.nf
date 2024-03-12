@@ -11,7 +11,8 @@ include { CAT_CAT                  } from './modules/CCBR/cat/cat'
 include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
 include { MATRIX_BED               } from './modules/local/matrix_bed'
 include { CHROMVAR                 } from './modules/local/chromvar'
-include { HINT_FOOTPRINTING     } from './modules/local/rgt/hint/footprinting'
+include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
+
 
 workflow {
     ch_consensus_bed = Channel.fromPath(file(params.consensus_peak_matrix, checkIfExists: true)) |
