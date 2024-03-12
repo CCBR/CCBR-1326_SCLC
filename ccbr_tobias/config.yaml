@@ -27,9 +27,17 @@ containers:
 # wildcards can be used and pipeline will populate the list with glob
 
 data:
+  c1: [/data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c1/*.bam]
   c2: [/data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c2/*.bam]
+  c3: [/data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c3/*.bam]
+  c1_c2:
+    - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c1/*.bam
+    - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c2/*.bam
   c1_c3:
     - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c1/*.bam
+    - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c3/*.bam
+  c2_c3:
+    - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c2/*.bam
     - /data/SCLCgenomics/CCBR_analysis/ATAC_bams/clusters/c3/*.bam
 
 # contrasts are list of 2 groups/conditions, for eg:
@@ -37,7 +45,9 @@ data:
 #   contrastA : ["group2","group1"]
 
 contrasts:
+  c1_vs_others: ["c1", "c2_c3"]
   c2_vs_others: ["c2", "c1_c3"]
+  c3_vs_others: ["c3", "c1_c2"]
 
 # peaks BED file to use
 peaks: "/data/SCLCgenomics/sovacoolkl/CCBR-1326/output/cat_cat/combined.bed"
