@@ -20,7 +20,7 @@ cpus <- as.integer("${task.cpus}") # 4
 bed_filename <- "${consensus_bed}" # 'output/matrix_bed/raw_tmm_fpkm_batch_corrected_PDX_only.bed'
 cluster_filename <- "${cluster_map}" # 'assets/cluster_membership.tsv'
 output_tsv <- "${output_tsv}" # 'tmp.tsv'
-output_rds <- "${output_rda}" # 'tmp.RData'
+output_rda <- "${output_rda}" # 'tmp.RData'
 
 BiocParallel::register(BiocParallel::MulticoreParam(cpus, progressbar = TRUE))
 
@@ -45,7 +45,7 @@ fragment_counts <- getCounts(bam_filenames,
   paired = TRUE,
   by_rg = FALSE,
   format = "bam",
-  colData = DataFrame(ClusterName = cluster_dat %>% pull(ClusterName))
+  colData = DataFrame(clusterName = cluster_dat %>% pull(clusterName))
 )
 
 colSums(assay(fragment_counts))
