@@ -1,18 +1,21 @@
-
+// nf-core
+include { GUNZIP                   } from './modules/nf-core/gunzip'
+include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
+// CCBR
+include { CAT_CAT                  } from './modules/CCBR/cat/cat'
+// local
 include { ATAC_LOGFC_BED           } from './modules/local/atac_logfc_bed'
 include { BEDTOOLS_INTERSECT       } from './modules/local/bedtools/intersect'
-include { GUNZIP                   } from './modules/nf-core/gunzip'
 include { JOIN_PEAKS_PROMOTERS     } from './modules/local/join_peaks_promoters'
 include { JOIN_ATAC_RNA            } from './modules/local/join_atac_rna'
 include { COUNT_INTERSECT          } from './modules/local/count_intersect'
 include { ROWBIND as ROWBIND_COUNT;
           ROWBIND as ROWBIND_LOGFC } from './modules/local/rowbind'
-include { CAT_CAT                  } from './modules/CCBR/cat/cat'
-include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
 include { MATRIX_BED               } from './modules/local/matrix_bed'
 include { CHROMVAR                 } from './modules/local/chromvar'
 include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
-include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
+//include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
+include { MOTIF2GENE_MAPPING       } from './modules/local/motif2gene_mapping'
 
 
 workflow {
@@ -29,9 +32,12 @@ workflow {
             [ [ id: it.sampleName, cluster: it.clusterName ], bam, bai ]
         }
 
+    MOTIF2GENE_MAPPING(file(params.gtf, checkIfExists: true), file(params.pfm, checkIfExists: true))
+
     CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam.map{meta, bam, bai -> bam}.collect())
 
     RGT(ch_consensus_bed, ch_bam)
+
 }
 
 workflow RGT {
