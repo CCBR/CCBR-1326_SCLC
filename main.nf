@@ -14,7 +14,7 @@ include { ROWBIND as ROWBIND_COUNT;
 include { MATRIX_BED               } from './modules/local/matrix_bed'
 include { CHROMVAR                 } from './modules/local/chromvar'
 include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
-//include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
+include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
 include { MOTIF2GENE_MAPPING       } from './modules/local/motif2gene_mapping'
 
 
@@ -47,8 +47,8 @@ workflow RGT {
 
     main:
         ch_rgtdata = Channel.fromPath(file(params.rgtdata)).collect()
-        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata).bed |
-            MOTIFANALYSIS_MATCHING
+        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
+        MOTIFANALYSIS_MATCHING(HINT_FOOTPRINTING.out.bed, ch_rgtdata)
 
 
 }

@@ -4,13 +4,14 @@ process MOTIFANALYSIS_MATCHING {
     cpus 32
     memory '32 GB'
     time '12 h'
-=
+
     input:
     tuple val(meta), path(bed)
+    path(rgtdata)
 
     output:
     tuple val(meta), path("${meta.id}_motifs/*.bed"), emit: bed
-    tuple val(meta), path("${meta.id}_motifs/*"),     emit: dir
+    tuple val(meta), path("${meta.id}_motifs/*"),     emit: motif_dir
 
     script:
     """
