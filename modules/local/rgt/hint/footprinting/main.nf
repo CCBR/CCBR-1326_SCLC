@@ -11,7 +11,8 @@ process HINT_FOOTPRINTING {
     path(rgtdata)
 
     output:
-    tuple val(meta), path("${meta.id}_footprints/${meta.id}*")
+    tuple val(meta), path("${meta.id}_footprints/${meta.id}_footprints/*.bed"),  emit: bed
+    tuple val(meta), path("${meta.id}_footprints/${meta.id}_footprints/*.info"), emit: info
 
     script:
     """

@@ -12,6 +12,7 @@ include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
 include { MATRIX_BED               } from './modules/local/matrix_bed'
 include { CHROMVAR                 } from './modules/local/chromvar'
 include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
+include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
 
 
 workflow {
@@ -40,7 +41,8 @@ workflow RGT {
 
     main:
         ch_rgtdata = Channel.fromPath(file(params.rgtdata)).collect()
-        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
+        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata).bed |
+            MOTIFANALYSIS_MATCHING
 
 
 }
