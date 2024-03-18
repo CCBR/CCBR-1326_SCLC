@@ -175,6 +175,8 @@ diff_dat %>%
     labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
 ```
 
+R<sup>2</sup> = `r lm_rsq`
+
 ### filtered to p-value < `r alpha_level`
 
 ```{r corr_signif_genes}
