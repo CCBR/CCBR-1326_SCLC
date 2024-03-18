@@ -83,8 +83,36 @@ dev <- computeDeviations(object = fragment_counts, annotations = motif_ix, backg
 # get variations
 variability <- computeVariability(dev)
 
-plotVariability(variability, use_plotly = FALSE)
-ggsave(output_png)
+var_plot <- plotVariability(variability, use_plotly = FALSE)
+ggsave(filename = output_png, plot = var_plot)
+
+n_top <- 20
+top_tfs <- variability %>%
+  slice_max(order_by = variability, n = n_top) %>%
+  arrange(desc(variability)) %>%
+  mutate(rank = row_number()) %>%
+  arrange(variability)
+var_plot_top <- top_tfs %>%
+  mutate(tf = factor(name, levels = top_tfs %>% pull(name))) %>%
+  ggplot(aes(
+    y = tf,
+    x = variability,
+    xmin = bootstrap_lower_bound,
+    xmax = bootstrap_upper_bound
+  )) +
+  geom_pointrange() +
+  labs(
+    y = "",
+    title = glue::glue("Top {n_top} TFs by variability in accessibility")
+  ) +
+  theme_bw()
+
+tsne_results <- deviationsTsne(dev, threshold = 1.5, perplexity = 10)
+tsne_plots <- plotDeviationsTsne(dev, tsne_results,
+  annotation_name = "POU5F1B",
+  sample_column = "clusterName",
+  shiny = FALSE
+)
 
 vdf <- as.data.frame(variability)
 devzdf <- as.data.frame(assays(dev)[["z"]])
@@ -94,8 +122,8 @@ rownames_to_column(devzdf, var = "motif") -> devzdf
 df <- merge(vdf, devzdf, by = "motif")
 write.table(df, file = output_tsv, row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
 
-topmotifs <- head(vdf["motif"], 100)
-topdevzdf <- devzdf[(devzdf["motif"] %in% topmotifs), ]
+topmotifs <- head(vdf[["motif"]], 100)
+topdevzdf <- devzdf[(devzdf[["motif"]] %in% topmotifs), ]
 rownames(topdevzdf) <- NULL
 column_to_rownames(as.data.frame(topdevzdf), var = "motif") -> topdevzdf
 
