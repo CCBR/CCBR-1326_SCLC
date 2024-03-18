@@ -17,5 +17,6 @@ process CHROMVAR {
     bam_filenames = bams.join(',')
     output_tsv = 'chromVAR.results.tsv'
     output_rda = 'chromVAR.results.RData'
+    output_png = 'chromVAR.results.variability.png'
     template 'chromvar.R'
 }

@@ -21,6 +21,7 @@ bed_filename <- "${consensus_bed}" # 'output/matrix_bed/raw_tmm_fpkm_batch_corre
 cluster_filename <- "${cluster_map}" # 'assets/cluster_membership.tsv'
 output_tsv <- "${output_tsv}" # 'tmp.tsv'
 output_rda <- "${output_rda}" # 'tmp.RData'
+output_png <- "${output_png}"
 
 BiocParallel::register(BiocParallel::MulticoreParam(cpus, progressbar = TRUE))
 
@@ -83,6 +84,7 @@ dev <- computeDeviations(object = fragment_counts, annotations = motif_ix, backg
 variability <- computeVariability(dev)
 
 plotVariability(variability, use_plotly = FALSE)
+ggsave(output_png)
 
 vdf <- as.data.frame(variability)
 devzdf <- as.data.frame(assays(dev)[["z"]])
