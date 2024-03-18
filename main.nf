@@ -16,7 +16,7 @@ include { CHROMVAR                 } from './modules/local/chromvar'
 include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
 include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
 include { MOTIF2GENE_MAPPING       } from './modules/local/motif2gene_mapping'
-
+include { CLUSTERPROFILER          } from './modules/local/clusterProfiler'
 
 workflow {
     ch_consensus_bed = Channel.fromPath(file(params.consensus_peak_matrix, checkIfExists: true)) |
@@ -89,6 +89,8 @@ workflow differential {
         .collect()
         .map{ files -> [ [id: 'atac_rna'], files ]}
         | ROWBIND_LOGFC
+
+    ch_atac_rna | CLUSTERPROFILER
 
     qmd_params = ch_atac_rna.combine(ROWBIND_COUNT.out.tsv)
         .map{file1, file2 -> [ 'atac_rna_tsv': file1.toString(), 'set_counts_tsv': file2.toString() ]}
