@@ -1,10 +1,16 @@
+#!/usr/bin/env Rscript
 library(clusterProfiler)
 library(dplyr)
+library(forcats)
+library(ggplot2)
+library(glue)
 library(msigdbr)
+library(purrr)
 library(readr)
 library(rlang)
+library(stringr)
 library(tibble)
-library(ggplot2)
+library(tidyr)
 
 # nextflow variables
 tsv_filename <- "${tsv}" # "output/rowbind_logfc/concat.atac_rna.tsv"
@@ -80,7 +86,7 @@ enrich_results <- dat_long %>%
   mutate(gene_ratio = eval_parse(GeneRatio, pick(everything()))) %>%
   ungroup()
 
-n_top <- 20
+n_top <- 15
 top_enrich <- enrich_results %>%
   group_by(cluster_id, ID) %>%
   summarize(max_gr = max(gene_ratio)) %>%
@@ -96,9 +102,19 @@ enrich_plot <- enrich_results %>%
   ) +
   scale_color_viridis_d() +
   # facet_wrap(~ cluster_id, nrow = 3, scales = 'free') +
+  labs(
+    title = glue("Top {n_top} enriched GO terms in HE-HA genes"),
+    y = ""
+  ) +
   theme_bw() +
-  theme(panel.grid.major.y = element_blank())
-ggsave(filename = output_png, plot = enrich_plot)
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  )
+ggsave(
+  filename = output_png, plot = enrich_plot,
+  width = 9, height = 11
+)
 
 
 save.image(output_rda)
