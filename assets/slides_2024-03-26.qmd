@@ -1,0 +1,117 @@
+---
+title: Integrated ATAC-seq and RNA-seq for SCLC
+author: CCBR
+date: 2024-03-26
+format: 
+    revealjs:
+        theme: [default, custom.scss]
+        embed-resources: true
+params:
+  chromvar_rdata:   "output/chromvar/chromVAR.results.RData"
+  clusterprofiler_rdata: "output/clusterprofiler/clusterProfiler.RData"
+---
+
+
+```{r setup}
+#| message: false
+library(tidyverse)
+library(broom)
+library(ggVennDiagram)
+library(glue)
+library(knitr)
+library(patchwork)
+library(plotly)
+library(scales)
+theme_sovacool <- ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      panel.spacing = unit(1, 'lines'),
+      plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      strip.background = element_blank(),
+      strip.placement = 'outside'
+    )
+theme_set(theme_sovacool)
+
+set.seed(20240326)
+```
+
+## chromVAR
+
+```{r chromvar}
+load(params$chromvar_rdata)
+
+var_plot <- chromVAR::plotVariability(variability, use_plotly = FALSE)
+print(var_plot)
+```
+
+## chromVAR top TFs
+
+```{r chromvar_top_tfs}
+n_top <- 20
+top_tfs <- variability %>%
+  slice_max(order_by = variability, n = n_top) %>%
+  arrange(desc(variability)) %>%
+  mutate(rank = row_number()) %>%
+  arrange(variability)
+var_plot_top <- top_tfs %>%
+  mutate(tf = factor(name, levels = top_tfs %>% pull(name))) %>%
+  ggplot(aes(
+    y = tf,
+    x = variability,
+    xmin = bootstrap_lower_bound,
+    xmax = bootstrap_upper_bound
+  )) +
+  geom_pointrange() +
+  labs(
+    y = "",
+    title = glue::glue("Top {n_top} TFs by variability in accessibility")
+  ) +
+  theme_bw()
+
+print(var_plot_top)
+```
+
+## chromVAR clusters
+
+```{r chromvar_tsne}
+tsne_results <- chromVAR::deviationsTsne(dev, threshold = 1.5, perplexity = 10)
+tsne_plots <- chromVAR::plotDeviationsTsne(dev, tsne_results,
+  annotation_name = "POU5F1B",
+  sample_column = "clusterName",
+  shiny = FALSE
+)
+tsne_plots[[1]]
+```
+
+
+## clusterProfiler
+
+```{r clusterProfiler, height='8in'}
+load(params$clusterprofiler_rdata)
+
+n_top <- 10
+top_enrich <- enrich_results %>%
+  group_by(cluster_id, ID) %>%
+  summarize(max_gr = max(gene_ratio)) %>%
+  slice_max(order_by = max_gr, n = n_top)
+enrich_plot <- enrich_results %>%
+  filter(ID %in% (top_enrich %>% pull(ID))) %>%
+  mutate(name = fct_reorder(ID, .x = gene_ratio, .fun = max)) %>%
+  ggplot(aes(gene_ratio, name, size = Count, color = cluster_id)) +
+  geom_point(alpha = 0.9) +
+  scale_color_viridis_d() +
+  labs(
+    title = glue("Top {n_top} enriched GO terms in HE-HA genes"),
+    y = ""
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "bottom"
+  )
+print(enrich_plot)
+```
+
+Gene Ratio: genes of interest that match the GO term / total genes of interest
+
+Count: genes of interest that match the GO term (i.e. numerator of Gene Ratio)
