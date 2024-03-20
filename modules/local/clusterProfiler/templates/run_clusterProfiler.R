@@ -75,7 +75,7 @@ enrich_results <- dat_long %>%
   mutate(
     gene_list = map(data, get_gene_list),
     enrich = map(gene_list, function(gl) {
-      enricher(names(unlist(gl)), TERM2GENE = term_gene) %>%
+      enricher(names(unlist(gl)), TERM2GENE = term_gene, minGSSize = 30) %>%
         as_tibble()
     })
   ) %>%
