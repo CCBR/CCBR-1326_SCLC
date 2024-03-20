@@ -12,7 +12,8 @@ include { COUNT_INTERSECT          } from './modules/local/count_intersect'
 include { ROWBIND as ROWBIND_COUNT;
           ROWBIND as ROWBIND_LOGFC } from './modules/local/rowbind'
 include { MATRIX_BED               } from './modules/local/matrix_bed'
-include { CHROMVAR                 } from './modules/local/chromvar'
+include { CHROMVAR                 } from './modules/local/chromvar/chromvar'
+include { CHROMVAR_SUBSET          } from './modules/local/chromvar/chromvar_subset'
 include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
 include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
 include { MOTIF2GENE_MAPPING       } from './modules/local/motif2gene_mapping'
@@ -34,7 +35,11 @@ workflow {
 
     MOTIF2GENE_MAPPING(file(params.gtf, checkIfExists: true), file(params.pfm, checkIfExists: true))
 
-    CHROMVAR(ch_consensus_bed, ch_cluster_map, ch_bam.map{meta, bam, bai -> bam}.collect())
+    bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
+    // chromvar on all samples
+    CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
+    // chromvar on each cluster individually
+    CHROMVAR_SUBSET(ch_consensus_bed, ch_cluster_map, bam_list, Channel.of('c1', 'c2', 'c3'))
 
     RGT(ch_consensus_bed, ch_bam)
 
