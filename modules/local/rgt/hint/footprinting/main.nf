@@ -11,14 +11,14 @@ process HINT_FOOTPRINTING {
     path(rgtdata)
 
     output:
-    tuple val(meta), path("${meta.id}_footprints/${meta.id}_footprints/*.bed"),  emit: bed
-    tuple val(meta), path("${meta.id}_footprints/${meta.id}_footprints/*.info"), emit: info
+    tuple val(meta), path("${meta.id}_footprints/*.bed"),  emit: bed
+    tuple val(meta), path("${meta.id}_footprints/*.info"), emit: info
 
     script:
     """
-    mkdir ${meta.id}_footprints/
+    mkdir ./${meta.id}_footprints/
     rgt-hint footprinting --atac-seq --paired-end --organism=hg19 \\
-        --output-location=${meta.id}_footprints/ \\
+        --output-location=./${meta.id}_footprints/ \\
         --output-prefix=${meta.id} \\
         ${bam} ${bed}
     """
