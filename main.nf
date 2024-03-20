@@ -37,7 +37,6 @@ workflow {
 
     bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
 
-    ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')) | view
     // chromvar on all samples
     CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
