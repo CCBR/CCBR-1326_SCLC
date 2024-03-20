@@ -11,10 +11,12 @@ adjacency <- c(
       mutate(
         cluster_id = str_replace_all(
           f,
-          regex("ccbr_tobias/network/c1_vs_c2_c3/(.*)/adjacency.txt"),
+          regex("ccbr_tobias/network/.*/(.*)/adjacency.txt"),
           "\\1"
         ),
         outdegree = 1 + str_count(Targets, ",")
       )
   }) %>%
   list_rbind()
+
+write_tsv(adjacency, file = "ccbr_tobias/adjacency_outdegree.tsv")
