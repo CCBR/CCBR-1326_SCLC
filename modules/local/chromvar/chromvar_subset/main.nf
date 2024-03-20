@@ -6,10 +6,8 @@ process CHROMVAR_SUBSET {
     container "nciccbr/sclc_r-quarto:v0.2.1"
 
     input:
-        path(consensus_bed)
-        path(cluster_map)
+        tuple path(consensus_bed), path(cluster_map), val(cluster_id)
         path(bams)
-        val(cluster_id)
 
     output:
         path("chromVAR.${cluster_id}*")
@@ -20,4 +18,9 @@ process CHROMVAR_SUBSET {
     output_rda = "chromVAR.${cluster_id}.RData"
     output_png = "chromVAR.${cluster_id}.variability.png"
     template 'chromvar.R'
+
+    stub:
+    """
+    touch chromVAR.${cluster_id}.txt
+    """
 }
