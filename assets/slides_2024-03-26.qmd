@@ -48,28 +48,30 @@ print(var_plot)
 ## chromVAR top TFs
 
 ```{r chromvar_top_tfs}
-n_top <- 20
-top_tfs <- variability %>%
-  slice_max(order_by = variability, n = n_top) %>%
-  arrange(desc(variability)) %>%
-  mutate(rank = row_number()) %>%
-  arrange(variability)
-var_plot_top <- top_tfs %>%
-  mutate(tf = factor(name, levels = top_tfs %>% pull(name))) %>%
-  ggplot(aes(
-    y = tf,
-    x = variability,
-    xmin = bootstrap_lower_bound,
-    xmax = bootstrap_upper_bound
-  )) +
-  geom_pointrange() +
-  labs(
-    y = "",
-    title = glue::glue("Top {n_top} TFs by variability in accessibility")
-  ) +
-  theme_bw()
-
-print(var_plot_top)
+plot_top_var_tfs <- function(var_df, n_top = 20, 
+                             title_str = glue::glue("Top {n_top} TFs by variability in accessibility")) {
+    top_tfs <- var_df %>%
+      slice_max(order_by = variability, n = n_top) %>%
+      arrange(desc(variability)) %>%
+      mutate(rank = row_number()) %>%
+      arrange(variability)
+    var_plot_top <- top_tfs %>%
+      mutate(tf = factor(name, levels = top_tfs %>% pull(name))) %>%
+      ggplot(aes(
+        y = tf,
+        x = variability,
+        xmin = bootstrap_lower_bound,
+        xmax = bootstrap_upper_bound
+      )) +
+      geom_pointrange() +
+      labs(
+        y = "",
+        title = title_str
+      ) +
+      theme_bw()
+    return(var_plot_top)
+}
+plot_top_var_tfs(variability)
 ```
 
 ## chromVAR clusters
@@ -82,6 +84,30 @@ tsne_plots <- chromVAR::plotDeviationsTsne(dev, tsne_results,
   shiny = FALSE
 )
 tsne_plots[[1]]
+```
+
+## chromVAR on clusters separately
+
+```{r chromvar_clusters}
+# rm(list = Filter(function(x) {
+#     str_detect(x, 'sovacool', negate = TRUE) &
+#         str_detect(x, 'params', negate = TRUE)
+# }, ls()))
+load("output/chromvar_subset/chromVAR.c1.RData")
+variability_c1 <- variability
+load("output/chromvar_subset/chromVAR.c2.RData")
+variability_c2 <- variability
+load("output/chromvar_subset/chromVAR.c3.RData")
+variability_c3 <- variability
+
+var_df <- bind_rows(
+    variability_c1 %>% mutate(cluster_id = 'c1'),
+    variability_c2 %>% mutate(cluster_id = 'c2'),
+    variability_c3 %>% mutate(cluster_id = 'c3')
+)
+var_plots <- c('c1','c2','c3') %>%
+    map(\(x) var_df %>% filter(cluster_id == x) %>% plot_top_var_tfs(title = glue("{x} Top TFs")))
+var_plots[[1]] + var_plots[[2]] + var_plots[[3]]
 ```
 
 
