@@ -37,13 +37,14 @@ workflow {
 
     bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
 
-    ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')) | view
     // chromvar on all samples
-    CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
+    //CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
-    CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
+    //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
-    //RGT(ch_consensus_bed, ch_bam)
+    RGT(ch_consensus_bed,
+        ch_bam.first()
+    )
 
 }
 
@@ -54,8 +55,19 @@ workflow RGT {
 
     main:
         ch_rgtdata = Channel.fromPath(file(params.rgtdata)).collect()
-        HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
-        MOTIFANALYSIS_MATCHING(HINT_FOOTPRINTING.out.bed, ch_rgtdata)
+        /*
+        HINT_FOOTPRINTING keeps rerunning even though prior runs were successful
+        */
+        //HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
+        ch_hint_beds = Channel.fromPath("output/hint_footprinting/*_footprints/*.bed") |
+            map{ bed ->
+                bed_id = bed.baseName.replace(".bed", "")
+                [ [id: bed_id], bed ]
+            }
+        MOTIFANALYSIS_MATCHING(
+            ch_hint_beds, //HINT_FOOTPRINTING.out.bed,
+            ch_rgtdata
+        )
 
 
 }
