@@ -5,6 +5,7 @@ work/
 log/
 .nextflow*
 assets/tss_bed
+assets/*.bed
 .Rproj.user
 .xdg_cache_home/
 .DS_Store
