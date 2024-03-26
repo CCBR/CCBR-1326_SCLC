@@ -3,6 +3,16 @@
 library(tidyverse)
 library(rlang)
 library(patchwork)
+theme_sovacool <- ggplot2::theme_bw() +
+  ggplot2::theme(
+    legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+    legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+    panel.spacing = unit(1, "lines"),
+    plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
+theme_set(theme_sovacool)
 
 cluster_membership <- read_tsv("assets/cluster_membership.tsv") %>%
   rename(
@@ -83,16 +93,44 @@ expr_scores <- diff_dat %>%
   select(gene_name, cluster_id, E_diff)
 
 # O_diff
+
+# for tobias we have just one network per group of samples,
+# so we don't normalize by number of samples in the group
+calc_outdegree_diff <- function(dat, score_col = log2_outdegree_avg) {
+  clusters <- dat %>%
+    pull(cluster_id) %>%
+    unique()
+  clusters %>%
+    map(function(cluster) {
+      z_score_avg_in <- dat %>%
+        filter(cluster_id == cluster) %>%
+        pull({{ score_col }})
+      z_score_avg_out <- dat %>%
+        filter(cluster_id != cluster) %>%
+        pull({{ score_col }}) %>%
+        sum()
+      return(tibble(
+        cluster_id = cluster,
+        score_diff = z_score_avg_in - z_score_avg_out
+      ))
+    }) %>%
+    bind_rows()
+}
 adjacency <- read_tsv("ccbr_tobias/adjacency_outdegree.tsv")
 
+outdegree_sums <- adjacency %>%
+  group_by(cluster_id) %>%
+  summarize(sum_outdegree = sum(outdegree))
+
 outdegree_scores <- adjacency %>%
-  mutate(log2_outdegree = log2(outdegree)) %>%
   left_join(cluster_counts) %>%
+  left_join(outdegree_sums) %>%
+  mutate(log2_outdegree_avg = log2(outdegree / sum_outdegree)) %>%
   group_by(Source) %>%
   nest() %>%
-  mutate(O_diff = map(data, calc_zscore_diff, score_col = log2_outdegree)) %>%
+  mutate(O_diff = map(data, calc_outdegree_diff, score_col = log2_outdegree_avg)) %>%
   unnest(O_diff) %>%
-  select(-data) %>%
+  # select(-data) %>%
   rename(
     O_diff = score_diff,
     gene_name = Source
@@ -146,7 +184,6 @@ plot_heatmap_row <- function(dat, value_column = A_diff,
       fill = {{ value_column }}
     )) +
     geom_tile() +
-    scale_fill_viridis_c() +
     facet_wrap(~cluster_id, nrow = 1, scales = "free") +
     labs(
       y = quo_name(enquo(value_column)),
@@ -155,21 +192,31 @@ plot_heatmap_row <- function(dat, value_column = A_diff,
     theme(
       axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
       axis.text.y = element_blank(),
-      axis.ticks.y = element_blank()
+      axis.ticks.y = element_blank(),
     )
 }
 top_tfs <- tf_rank_dat %>%
-  filter(TF_rank <= 25)
+  filter(TF_rank <= 25) %>%
+  mutate(
+    outdegree = O_diff,
+    expression = E_diff,
+    accessibility = A_diff
+  )
+
+write_csv(top_tfs, "assets/top_TFs.csv")
 
 # plot TFs patchwork
-(plot_heatmap_row(top_tfs, O_diff) +
+(plot_heatmap_row(top_tfs, outdegree) +
+  scale_fill_viridis_c(option = "viridis") +
   theme(axis.text.x = element_blank())
 ) /
-  (plot_heatmap_row(top_tfs, E_diff) +
+  (plot_heatmap_row(top_tfs, expression) +
+    scale_fill_viridis_c(option = "inferno") +
     theme(
       axis.text.x = element_blank(),
       strip.text = element_blank()
     )
   ) /
-  (plot_heatmap_row(top_tfs, A_diff) +
+  (plot_heatmap_row(top_tfs, accessibility) +
+    scale_fill_viridis_c(option = "mako") +
     theme(strip.text = element_blank()))

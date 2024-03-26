@@ -1,5 +1,5 @@
 ---
-title: Integrated ATAC-seq and RNA-seq for SCLC
+title: Integrated ATAC-seq and RNA-seq analysis for SCLC
 author: CCBR
 date: 2024-03-26
 format: 
@@ -21,7 +21,9 @@ library(glue)
 library(knitr)
 library(patchwork)
 library(plotly)
+library(rlang)
 library(scales)
+library(tidyverse)
 theme_sovacool <- ggplot2::theme_bw() +
     ggplot2::theme(
       legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
@@ -36,7 +38,7 @@ theme_set(theme_sovacool)
 set.seed(20240326)
 ```
 
-## chromVAR
+## chromVAR - all TFs
 
 ```{r chromvar}
 load(params$chromvar_rdata)
@@ -73,7 +75,7 @@ plot_top_var_tfs <- function(var_df, n_top = 20,
 }
 plot_top_var_tfs(variability)
 ```
-
+<!--
 ## chromVAR clusters
 
 ```{r chromvar_tsne}
@@ -85,6 +87,7 @@ tsne_plots <- chromVAR::plotDeviationsTsne(dev, tsne_results,
 )
 tsne_plots[[1]]
 ```
+-->
 
 ## chromVAR on clusters separately
 
@@ -141,3 +144,56 @@ print(enrich_plot)
 Gene Ratio: genes of interest that match the GO term / total genes of interest
 
 Count: genes of interest that match the GO term (i.e. numerator of Gene Ratio)
+
+## Key TFs per cluster from Tang _et al._
+
+![](img/tang_fig-3D.png)
+
+## Calculation of key TFs per cluster
+
+![](img/tang_tf-rank-calc.png)
+Tang _et al._ Suppl. pg. 8
+
+## Key TFs per cluster
+
+
+```{r key TFs}
+plot_heatmap_row <- function(dat, value_column = A_diff,
+                             scale_fill = scale_fill_viridis_c) {
+  dat %>%
+    ggplot(aes(
+      x = gene_name, y = 1, # y = diff,
+      fill = {{ value_column }}
+    )) +
+    geom_tile() +
+    facet_wrap(~cluster_id, nrow = 1, scales = "free") +
+    labs(
+      y = quo_name(enquo(value_column)),
+      x = ""
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+    )
+}
+top_tfs <- read_csv('assets/top_TFs.csv')
+
+# plot TFs patchwork
+(plot_heatmap_row(top_tfs, outdegree) +
+  scale_fill_viridis_c(option = 'viridis') +
+  theme(axis.text.x = element_blank())
+) /
+  (plot_heatmap_row(top_tfs, expression) +
+    scale_fill_viridis_c(option = 'inferno') +
+    theme(
+      axis.text.x = element_blank(),
+      strip.text = element_blank()
+    )
+  ) /
+  (plot_heatmap_row(top_tfs, accessibility) +
+       scale_fill_viridis_c(option = 'mako') +
+    theme(strip.text = element_blank()))
+
+```
+
