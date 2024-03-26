@@ -45,11 +45,7 @@ set.seed(20240326)
 - GO term enrichment analysis on high-expression & high-accessibility gene sets (clusterProfiler).
 - Variability in accessibility across TFs (chromVAR).
 - Construct TF network (TOBIAS).
-- Rank top TFs per cluster with same method as Tang _et al._
-
-### Next steps
-
-- Construct network with TF footprints from HINT-ATAC and compare to TOBIAS.
+- Rank top TFs per cluster with similar method as Tang _et al._
 
 ## Genes of interest
 
@@ -274,18 +270,21 @@ top_tfs <- read_csv(params$top_tfs)
 
 # plot TFs patchwork
 (plot_heatmap_row(top_tfs, outdegree) +
-  scale_fill_viridis_c(option = 'viridis') +
+  colorspace::scale_fill_continuous_diverging(palette = 'Blue-Red',
+                                              limits = c(-10.5,10.5)) +
   theme(axis.text.x = element_blank())
 ) /
   (plot_heatmap_row(top_tfs, expression) +
-    scale_fill_viridis_c(option = 'inferno') +
+    colorspace::scale_fill_continuous_diverging(palette = 'Green-Orange',
+                                                limits = c(-7.31,7.31)) +
     theme(
       axis.text.x = element_blank(),
       strip.text = element_blank()
     )
   ) /
   (plot_heatmap_row(top_tfs, accessibility) +
-       scale_fill_viridis_c(option = 'mako') +
+       colorspace::scale_fill_continuous_diverging(palette = 'Purple-Green',
+                                                   limits = c(-20,20))  +
     theme(strip.text = element_blank()))
 
 ```
@@ -293,5 +292,9 @@ top_tfs <- read_csv(params$top_tfs)
 
 ## Next steps
 
-- Construct network with TF footprints from HINT-ATAC and compare to TOBIAS.
+- Re-construct network with TF footprints from HINT-ATAC and compare to TOBIAS.
+- Re-construct peak-gene links with 0.5mbp window around gene TSSs to include promoters _and_ enhancers.
 
+### Need
+
+- Original narrowPeak files for each sample
