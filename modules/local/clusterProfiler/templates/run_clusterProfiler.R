@@ -13,9 +13,9 @@ library(tibble)
 library(tidyr)
 
 # nextflow variables
-tsv_filename <- "${tsv}" # "output/rowbind_logfc/concat.atac_rna.tsv"
-output_rda <- "${output_rda}" # "clusterProfiler.RData"
-output_png <- "${output_png}" # 'enrich_ORA_results.png'
+tsv_filename <- "${tsv}" # tsv_filename <-"output/rowbind_logfc/concat.atac_rna.tsv"
+output_rda <- "${output_rda}" # output_rda <- "output/clusterProfiler/clusterProfiler.RData"
+output_png <- "${output_png}" # output_png <-'output/clusterProfiler/enrich_ORA_results.png'
 
 # C5 = Gene Ontology
 msigdb_set <- msigdbr(species = "Homo sapiens", category = "C5")
