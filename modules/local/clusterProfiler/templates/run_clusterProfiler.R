@@ -23,14 +23,14 @@ term_gene <- msigdb_set %>%
   select(gs_name, gene_symbol)
 
 alpha_level <- 0.05
-log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
+log2fc_thresh <- 0
 
 dat <- read_tsv(tsv_filename) %>%
   filter(
     pvalue_rna < alpha_level,
     pvalue_atac < alpha_level,
-    abs(log2FoldChange_atac) >= log2fc_thresh,
-    abs(log2FoldChange_rna) >= log2fc_thresh,
+    log2FoldChange_atac >= log2fc_thresh, # only select HE-HA genes
+    log2FoldChange_rna >= log2fc_thresh,
   )
 
 get_gene_list <- function(dat, logfc_col = log2FoldChange) {
