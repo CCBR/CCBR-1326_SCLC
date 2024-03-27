@@ -34,3 +34,58 @@ process BEDTOOLS_INTERSECT {
         > ${outfile_countB}
     """
 }
+
+process BEDTOOLS_INTERSECT_FULL {
+    """
+    intersect bedfiles and only report intersections
+    where 100% of a query in bed_A is overlapped by a record in bed_B
+    """
+    tag { meta.id }
+    container 'nciccbr/ccbr_ubuntu_base_20.04:v6'
+
+    input:
+    tuple val(meta), path(bed_A), path(bed_B)
+
+    output:
+    tuple val(meta), path("intersect.${bed_A.baseName}.${bed_B}"),   emit: intersect
+
+    script:
+    def outfile_intersect = "intersect.${bed_A.baseName}.${bed_B}"
+    """
+    bedtools intersect \\
+        -a ${bed_A} \\
+        -b ${bed_B} \\
+        -f 1.0 \\
+        -wo \\
+        | sort | uniq \\
+        > ${outfile_intersect}
+    """
+}
+
+process BEDTOOLS_INTERSECT_WA {
+    """
+    intersect bedfiles and only report intersections
+    where 100% of a query in bed_A is overlapped by a record in bed_B.
+    only write original entry in A for each overlap.
+    """
+    tag { meta.id }
+    container 'nciccbr/ccbr_ubuntu_base_20.04:v6'
+
+    input:
+    tuple val(meta), path(bed_A), path(bed_B)
+
+    output:
+    tuple val(meta), path("intersect.${bed_A.baseName}.${bed_B}"),   emit: intersect
+
+    script:
+    def outfile_intersect = "intersect.${bed_A.baseName}.${bed_B}"
+    """
+    bedtools intersect \\
+        -a ${bed_A} \\
+        -b ${bed_B} \\
+        -f 1.0 \\
+        -wa \\
+        | sort | uniq \\
+        > ${outfile_intersect}
+    """
+}

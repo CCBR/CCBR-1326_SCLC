@@ -6,6 +6,9 @@ include { CAT_CAT                  } from './modules/CCBR/cat/cat'
 // local
 include { ATAC_LOGFC_BED           } from './modules/local/atac_logfc_bed'
 include { BEDTOOLS_INTERSECT       } from './modules/local/bedtools/intersect'
+include { BEDTOOLS_INTERSECT_FULL as BEDTOOLS_INTERSECT_TSS    } from './modules/local/bedtools/intersect'
+include { BEDTOOLS_INTERSECT_FULL as BEDTOOLS_INTERSECT_MOTIF
+                                   } from './modules/local/bedtools/intersect'
 include { JOIN_PEAKS_PROMOTERS     } from './modules/local/join_peaks_promoters'
 include { JOIN_ATAC_RNA            } from './modules/local/join_atac_rna'
 include { COUNT_INTERSECT          } from './modules/local/count_intersect'
@@ -18,8 +21,17 @@ include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting
 include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
 include { MOTIF2GENE_MAPPING       } from './modules/local/motif2gene_mapping'
 include { CLUSTERPROFILER          } from './modules/local/clusterProfiler'
+include { EXTRACT_TSS              } from './modules/local/extract_tss'
+include { STRIP_TAB                } from './modules/local/strip_tab'
+include { FILTER_FOOTPRINTS        } from './modules/local/filter_footprints'
+include { REFORMAT_BED_INTERSECT   } from './modules/local/reformat_bed_intersect'
+include { NETWORK_OUTDEGREE        } from './modules/local/network_outdegree'
 
 workflow {
+    gtf = file(params.gtf, checkIfExists: true)
+    pfm = file(params.pfm, checkIfExists: true)
+    chrom_sizes = file(params.chrom_sizes, checkIfExists: true)
+
     ch_consensus_bed = Channel.fromPath(file(params.consensus_peak_matrix, checkIfExists: true)) |
         MATRIX_BED
 
@@ -33,18 +45,28 @@ workflow {
             [ [ id: it.sampleName, cluster: it.clusterName ], bam, bai ]
         }
 
-    MOTIF2GENE_MAPPING(file(params.gtf, checkIfExists: true), file(params.pfm, checkIfExists: true))
+    MOTIF2GENE_MAPPING(gtf, pfm)
 
     bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
 
     // chromvar on all samples
-    //CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
+    CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
-    //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
+    CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
-    RGT(ch_consensus_bed,
-        ch_bam.first()
-    )
+    ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints
+
+    ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
+
+    ch_peaks_tss = BEDTOOLS_INTERSECT_TSS(ch_consensus_bed.map{
+                bed -> [[id: 'consensus'], bed]
+            }.combine(ch_tss_bed)
+        ).intersect
+        | REFORMAT_BED_INTERSECT
+        | map{ meta, bed -> bed }
+    ch_tf_genes = BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_tss)).intersect
+        | FILTER_FOOTPRINTS
+    ch_tf_genes | NETWORK_OUTDEGREE
 
 }
 
@@ -54,21 +76,34 @@ workflow RGT {
         ch_bam
 
     main:
+
         ch_rgtdata = Channel.fromPath(file(params.rgtdata)).collect()
         /*
-        HINT_FOOTPRINTING keeps rerunning even though prior runs were successful
+        // HINT_FOOTPRINTING keeps rerunning even though prior runs were successful
         */
-        //HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
+        // HINT_FOOTPRINTING(ch_bam.combine(ch_consensus_bed), ch_rgtdata)
         ch_hint_beds = Channel.fromPath("output/hint_footprinting/*_footprints/*.bed") |
             map{ bed ->
-                bed_id = bed.baseName.replace(".bed", "")
+                bed_id = bed.baseName
                 [ [id: bed_id], bed ]
             }
+        /*
+        // keeps rerunning even though prior runs were successful...
+
         MOTIFANALYSIS_MATCHING(
             ch_hint_beds, //HINT_FOOTPRINTING.out.bed,
             ch_rgtdata
         )
+        */
+        ch_footprints = Channel.fromPath("output/motifanalysis_matching/*_motifs/*.bed") |
+            map{ bed ->
+                bed_id = bed.baseName.replace("_mpbs", "")
+                [ [id: bed_id], bed ]
+            } |
+            STRIP_TAB
 
+    emit:
+        footprints = STRIP_TAB.out
 
 }
 
