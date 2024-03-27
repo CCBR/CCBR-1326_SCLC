@@ -83,7 +83,6 @@ atac_scores <- chromvar_dat %>%
 diff_dat <- read_tsv("output/rowbind_logfc/concat.atac_rna.tsv")
 
 expr_scores <- diff_dat %>%
-  filter(pvalue_rna < 0.05) %>%
   select(gene_name, log2FoldChange_rna, pvalue_rna, cluster_id) %>%
   # rename_with( ~str_remove(.x, '_rna'), .cols = ends_with('_rna')) %>%
   mutate(
@@ -130,7 +129,7 @@ outdegree_scores <- adjacency %>%
   nest() %>%
   mutate(O_diff = map(data, calc_outdegree_diff, score_col = log2_outdegree_avg)) %>%
   unnest(O_diff) %>%
-  # select(-data) %>%
+  select(-data) %>%
   rename(
     O_diff = score_diff,
     gene_name = Source
@@ -146,7 +145,7 @@ rank_col <- function(dat, value_col = A_diff, group_col = cluster_id) {
 }
 
 dat_joined <- atac_scores %>%
-  inner_join(expr_scores, by = c("gene_name", "cluster_id")) %>%
+  full_join(expr_scores, by = c("gene_name", "cluster_id")) %>%
   full_join(outdegree_scores, by = c("gene_name", "cluster_id"))
 
 tf_rank_dat <- dat_joined %>%
@@ -160,21 +159,6 @@ tf_rank_dat <- dat_joined %>%
   mutate(TF_rank = row_number()) %>%
   arrange(TF_rank)
 
-# plot heatmap
-
-tf_rank_dat %>%
-  filter(TF_rank <= 25) %>%
-  pivot_longer(c(A_diff, E_diff, O_diff),
-    names_to = "diff", values_to = "value"
-  ) %>%
-  ggplot(aes(
-    x = gene_name, y = 1, # y = diff,
-    fill = value,
-    group = interaction(cluster_id, diff)
-  )) +
-  geom_tile() +
-  facet_grid(diff ~ cluster_id, scales = "free") +
-  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
 
 plot_heatmap_row <- function(dat, value_column = A_diff,
                              scale_fill = scale_fill_viridis_c) {
@@ -205,18 +189,34 @@ top_tfs <- tf_rank_dat %>%
 
 write_csv(top_tfs, "assets/top_TFs.csv")
 
+min_max <- list(
+  min = ~ min(.x, na.rm = TRUE),
+  max = ~ max(.x, na.rm = TRUE)
+)
+tf_rank_dat %>%
+  ungroup() %>%
+  summarize(across(ends_with("_diff"), min_max))
 # plot TFs patchwork
 (plot_heatmap_row(top_tfs, outdegree) +
-  scale_fill_viridis_c(option = "viridis") +
+  colorspace::scale_fill_continuous_diverging(
+    palette = "Blue-Red",
+    limits = c(-10.5, 10.5)
+  ) +
   theme(axis.text.x = element_blank())
 ) /
   (plot_heatmap_row(top_tfs, expression) +
-    scale_fill_viridis_c(option = "inferno") +
+    colorspace::scale_fill_continuous_diverging(
+      palette = "Green-Orange",
+      limits = c(-7.31, 7.31)
+    ) +
     theme(
       axis.text.x = element_blank(),
       strip.text = element_blank()
     )
   ) /
   (plot_heatmap_row(top_tfs, accessibility) +
-    scale_fill_viridis_c(option = "mako") +
+    colorspace::scale_fill_continuous_diverging(
+      palette = "Purple-Green",
+      limits = c(-20, 20)
+    ) +
     theme(strip.text = element_blank()))

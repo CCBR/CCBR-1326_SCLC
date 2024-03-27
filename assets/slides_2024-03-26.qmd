@@ -7,8 +7,10 @@ format:
         theme: [default, custom.scss]
         embed-resources: true
 params:
-  chromvar_rdata:   "output/chromvar/chromVAR.results.RData"
+  atac_rna_tsv:   "output/rowbind_logfc/concat.atac_rna.tsv"
   clusterprofiler_rdata: "output/clusterprofiler/clusterProfiler.RData"
+  chromvar_rdata:   "output/chromvar/chromVAR.results.RData"
+  top_tfs: 'assets/top_TFs.csv'
 ---
 
 
@@ -38,7 +40,119 @@ theme_set(theme_sovacool)
 set.seed(20240326)
 ```
 
-## chromVAR - all TFs
+## Accomplished
+
+- GO term enrichment analysis on high-expression & high-accessibility gene sets (clusterProfiler).
+- Variability in accessibility across TFs (chromVAR).
+- Construct TF network (TOBIAS).
+- Rank top TFs per cluster with similar method as Tang _et al._
+
+## Genes of interest
+
+```{r gene_quadrants, out.width='80%'}
+diff_dat <- read_tsv(params$atac_rna_tsv) %>% 
+    mutate(cluster_id = as.factor(cluster_id))
+
+alpha_level <- 0.05
+log2fc_thresh <- 0
+
+diff_dat_filt <- diff_dat %>% 
+  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
+         abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
+
+diff_dat_filt_cat <- diff_dat_filt %>% 
+    mutate(category = case_when(
+        log2FoldChange_rna > 0 & log2FoldChange_atac > 0 ~ 'HE-HA',
+        log2FoldChange_rna > 0 & log2FoldChange_atac < 0 ~ 'HE-LA',
+        log2FoldChange_rna < 0 & log2FoldChange_atac > 0 ~ 'LE-HA',
+        log2FoldChange_rna < 0 & log2FoldChange_atac < 0 ~ 'LE-LA',
+        TRUE ~ NA_character_
+    ))
+
+min_max <- list(min = ~ min(.x, na.rm = TRUE),
+                max = ~ max(.x, na.rm = TRUE))
+abs_max <- diff_dat_filt_cat %>%
+        summarize(across(starts_with('log2FoldChange'), min_max)) %>%
+        as.list() %>% unname() %>% unlist() %>% abs() %>% max()
+p <- diff_dat_filt_cat %>%
+        mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
+        ggplot(
+            aes(
+                y = log2FoldChange_atac,
+                x = log2FoldChange_rna,
+                color = category,
+                group = category,
+                text = glue(
+                    'gene name:\t{gene_name}',
+                    'cluster:\t{cluster_id}',
+                    'ATAC log2(FC):\t{log2FoldChange_atac}',
+                    'RNA log2(FC):\t{log2FoldChange_rna}',
+                    .sep = '\n'
+                )
+            )
+        ) +
+        geom_hline(
+            yintercept = 0,
+            linetype = 'dashed',
+            color = 'darkgrey'
+        ) +
+        geom_vline(
+            xintercept = 0,
+            linetype = 'dashed',
+            color = 'darkgrey'
+        ) +
+        geom_point(alpha = 0.5) +
+        scale_color_viridis_d() +
+        guides(color = guide_legend(title = '')) +
+        lims(x = c(-abs_max, abs_max),
+             y = c(-abs_max, abs_max)) +
+        labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
+
+ggplotly(p, tooltip = 'text')
+```
+
+- HE-HA: High Expression (RNAseq) and High Accessibility (ATACseq)
+- LE-LA: Low Expression (RNAseq) and Low Accessibility (ATACseq)
+
+## Top enriched GO terms in HE-HA gene sets
+
+```{r clusterProfiler, fig.width=9, fig.height=7}
+load(params$clusterprofiler_rdata)
+
+n_top <- 10
+enrich_plot <- enrich_results %>%
+  mutate(ID = str_replace_all(ID, "_", " ") %>% str_wrap(width = 80)) %>% 
+  group_by(cluster_id) %>%
+  slice_max(order_by = gene_ratio, n = n_top) %>%
+  mutate(name = fct_reorder(ID, .x = Count)
+  ) %>%
+  ggplot(aes(gene_ratio, name, size = Count, #color = cluster_id,
+             text = glue("Gene Ratio: {GeneRatio}\n{name}"))) +
+  geom_point(alpha = 0.9) +
+  facet_wrap(~cluster_id, scales = 'free', nrow = 3
+             ) +
+  scale_color_viridis_d() +
+  labs(
+    #title = glue("Top {n_top} enriched GO terms in HE-HA genes"),
+    y = ""
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    #axis.text.x = element_text(angle = 45)
+  )
+enrich_plot
+ggplotly(enrich_plot, tooltip = 'text')
+```
+
+::: {.notes}
+- Gene Ratio: genes of interest that match the GO term / total genes of interest
+- Count: genes of interest that match the GO term (i.e. numerator of Gene Ratio)
+
+y axis order is by Count
+:::
+
+## chromVAR - variability in accessibility across all TFs
 
 ```{r chromvar}
 load(params$chromvar_rdata)
@@ -113,37 +227,9 @@ var_plots <- c('c1','c2','c3') %>%
 var_plots[[1]] + var_plots[[2]] + var_plots[[3]]
 ```
 
+## Network construction from Tang _et al._
 
-## clusterProfiler
-
-```{r clusterProfiler, height='8in'}
-load(params$clusterprofiler_rdata)
-
-n_top <- 10
-top_enrich <- enrich_results %>%
-  group_by(cluster_id, ID) %>%
-  summarize(max_gr = max(gene_ratio)) %>%
-  slice_max(order_by = max_gr, n = n_top)
-enrich_plot <- enrich_results %>%
-  filter(ID %in% (top_enrich %>% pull(ID))) %>%
-  mutate(name = fct_reorder(ID, .x = gene_ratio, .fun = max)) %>%
-  ggplot(aes(gene_ratio, name, size = Count, color = cluster_id)) +
-  geom_point(alpha = 0.9) +
-  scale_color_viridis_d() +
-  labs(
-    title = glue("Top {n_top} enriched GO terms in HE-HA genes"),
-    y = ""
-  ) +
-  theme_bw() +
-  theme(
-    legend.position = "bottom"
-  )
-print(enrich_plot)
-```
-
-Gene Ratio: genes of interest that match the GO term / total genes of interest
-
-Count: genes of interest that match the GO term (i.e. numerator of Gene Ratio)
+![](img/tang_fig-3A_network.png)
 
 ## Key TFs per cluster from Tang _et al._
 
@@ -152,7 +238,10 @@ Count: genes of interest that match the GO term (i.e. numerator of Gene Ratio)
 ## Calculation of key TFs per cluster
 
 ![](img/tang_tf-rank-calc.png)
+
+:::{.notes}
 Tang _et al._ Suppl. pg. 8
+:::
 
 ## Key TFs per cluster
 
@@ -177,23 +266,35 @@ plot_heatmap_row <- function(dat, value_column = A_diff,
       axis.ticks.y = element_blank(),
     )
 }
-top_tfs <- read_csv('assets/top_TFs.csv')
+top_tfs <- read_csv(params$top_tfs)
 
 # plot TFs patchwork
 (plot_heatmap_row(top_tfs, outdegree) +
-  scale_fill_viridis_c(option = 'viridis') +
+  colorspace::scale_fill_continuous_diverging(palette = 'Blue-Red',
+                                              limits = c(-10.5,10.5)) +
   theme(axis.text.x = element_blank())
 ) /
   (plot_heatmap_row(top_tfs, expression) +
-    scale_fill_viridis_c(option = 'inferno') +
+    colorspace::scale_fill_continuous_diverging(palette = 'Green-Orange',
+                                                limits = c(-7.31,7.31)) +
     theme(
       axis.text.x = element_blank(),
       strip.text = element_blank()
     )
   ) /
   (plot_heatmap_row(top_tfs, accessibility) +
-       scale_fill_viridis_c(option = 'mako') +
+       colorspace::scale_fill_continuous_diverging(palette = 'Purple-Green',
+                                                   limits = c(-20,20))  +
     theme(strip.text = element_blank()))
 
 ```
 
+
+## Next steps
+
+- Re-construct network with TF footprints from HINT-ATAC and compare to TOBIAS.
+- Re-construct peak-gene links with 0.5mbp window around gene TSSs to include promoters _and_ enhancers.
+
+### Need
+
+- Original narrowPeak files for each sample

@@ -20,3 +20,13 @@ adjacency <- c(
   list_rbind()
 
 write_tsv(adjacency, file = "ccbr_tobias/adjacency_outdegree.tsv")
+
+all_targets <- adjacency %>%
+  pull(Targets) %>%
+  str_split(",") %>%
+  unlist() %>%
+  str_remove_all(" ") %>%
+  unique() %>%
+  sort()
+
+adj_mat <- adjacency %>% select(Source, cluster_id, Targets)
