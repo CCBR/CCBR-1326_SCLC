@@ -29,6 +29,7 @@ rna_edger <- edgeR::DGEList(
 ) %>%
   edgeR::calcNormFactors(method = "TMM")
 
-rna_counts_norm <- bind_cols(gene_lengths_df, edgeR::rpkm(rna_edger))
+rna_counts_norm <- bind_cols(gene_lengths_df, edgeR::rpkm(rna_edger)) %>%
+  select(-Length)
 
 write_csv(rna_counts_norm, "data/rna_counts_normalized.csv")
