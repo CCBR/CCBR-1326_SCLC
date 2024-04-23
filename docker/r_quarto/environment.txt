@@ -11,6 +11,7 @@ r-complexupset
 r-DT
 r-dplyr
 r-doFuture
+r-furrr
 r-future
 r-future.apply
 r-ggplot2
