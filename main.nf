@@ -26,6 +26,7 @@ include { STRIP_TAB                } from './modules/local/strip_tab'
 include { FILTER_FOOTPRINTS        } from './modules/local/filter_footprints'
 include { REFORMAT_BED_INTERSECT   } from './modules/local/reformat_bed_intersect'
 include { NETWORK_OUTDEGREE        } from './modules/local/network_outdegree'
+include { CORRELATE_PEAKS_GENES    } from './modules/local/correlate_peaks_genes'
 
 workflow {
     gtf = file(params.gtf, checkIfExists: true)
@@ -64,6 +65,15 @@ workflow {
         ).intersect
         | REFORMAT_BED_INTERSECT
         | map{ meta, bed -> bed }
+
+    Channel.fromPath([file(params.metadata, checkIfExists: true),
+                      file(params.rna_counts_norm, checkIfExists: true),
+                      file(params.atac_counts_norm, checkIfExists: true)
+                     ])
+        .collect()
+        .combine(ch_peaks_tss)
+        | CORRELATE_PEAKS_GENES
+
     ch_tf_genes = BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_tss)).intersect
         | FILTER_FOOTPRINTS
     ch_tf_genes | NETWORK_OUTDEGREE
