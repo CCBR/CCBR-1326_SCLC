@@ -14,7 +14,7 @@ main <-
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
            peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed",
            peak_gene_outfile = "output/peaks_genes_corr.csv",
-           ncores = 16,
+           ncores = 8,
            pvalue_thresh = 0.01) {
     plan(multicore, workers = min(ncores, availableCores()))
 
@@ -90,13 +90,13 @@ main <-
     rm(
       list = c(
         "atac_counts_norm",
-        "atac_counts_norm_long",
+        #"atac_counts_norm_long",
         "metadat",
         "metadat_join",
         "peak_gene_tss",
-        "rna_counts_norm",
-        "rna_counts_norm_long",
-        "samples_mapped"
+        "rna_counts_norm"
+        #"rna_counts_norm_long",
+        #"samples_mapped"
       )
     )
     counts_sum <- counts_join %>%
@@ -112,25 +112,15 @@ main <-
         by = c("gene_name", "peak_coord")
       ) %>%
       select(-rna_sample_id) %>%
-      group_by(gene_name, peak_coord)
+      group_by(gene_name, peak_coord) %>%
+      nest()
 
-
-    counts_corr <- counts_grp %>%
-      nest() %>%
-      mutate(test = future_map(data, ~ broom::tidy(
-        cor.test(
-          .x$rna_count,
-          .x$atac_count,
-          method = "spearman",
-          adjust = "fdr"
-        )
-      ))) %>%
-      unnest(cols = test) %>%
-      select(-data) %>%
-      filter(p.value < pvalue_thresh)
-
-    write_csv(counts_corr, peak_gene_outfile)
-  }
+    counts_grp %>%
+        pmap(\(gene_name, peak_coord, data) {
+            filename <- here::here('output', 'gene_peak_pairs', glue("{gene_name}_{peak_coord}.tsv"))
+            write_tsv(data, filename)
+        })
+}
 
 main(
   metadata_infile = "${metadata_infile}",

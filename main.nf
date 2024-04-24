@@ -27,8 +27,16 @@ include { FILTER_FOOTPRINTS        } from './modules/local/filter_footprints'
 include { REFORMAT_BED_INTERSECT   } from './modules/local/reformat_bed_intersect'
 include { NETWORK_OUTDEGREE        } from './modules/local/network_outdegree'
 include { CORRELATE_PEAKS_GENES    } from './modules/local/correlate_peaks_genes'
+include { CORRELATE_PAIR           } from './modules/local/corr_peak_gene_pair'
+//include { JOIN_CORRELATIONS        }
+//include { FILTER_CORR_BED          }
 
 workflow {
+    Channel.fromPath("output/gene_peak_pairs/*.tsv") |
+        CORRELATE_PAIR
+}
+
+workflow mainwf {
     gtf = file(params.gtf, checkIfExists: true)
     pfm = file(params.pfm, checkIfExists: true)
     chrom_sizes = file(params.chrom_sizes, checkIfExists: true)
