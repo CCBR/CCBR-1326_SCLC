@@ -51,9 +51,9 @@ workflow {
     bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
 
     // chromvar on all samples
-    CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
+    //CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
-    CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
+    //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
     ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints
 
@@ -77,7 +77,7 @@ workflow {
     ch_tf_genes = BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_tss)).intersect
         | FILTER_FOOTPRINTS
     ch_tf_genes | NETWORK_OUTDEGREE
-
+    ß
 }
 
 workflow RGT {

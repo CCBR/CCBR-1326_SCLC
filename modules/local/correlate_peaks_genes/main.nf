@@ -4,8 +4,8 @@ process CORRELATE_PEAKS_GENES {
     """
     container "nciccbr/sclc_r-quarto:v0.3.3"
     cpus 16
-    memory '800 GB'
-    queue 'largemem'
+    memory '200 GB'
+    //queue 'largemem'
     time '24 h'
 
     input:
