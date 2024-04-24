@@ -16,7 +16,9 @@ main <-
            peak_gene_outfile = "output/peaks_genes_corr.csv",
            ncores = 16,
            pvalue_thresh = 0.01) {
-    plan(multicore, workers = min(ncores, availableCores()))
+    n_workers <- min(ncores, availableCores())
+    print(glue("Using {n_workers} workers"))
+    plan(multisession, workers = 8)
 
     # integrate RNA-seq with ATAC-seq
     metadat <- read_csv(metadata_infile)
@@ -108,7 +110,7 @@ main <-
 
     counts_corr <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
-      left_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
+      right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
         by = c("gene_name", "peak_coord")
       ) %>%
       select(-rna_sample_id) %>%
