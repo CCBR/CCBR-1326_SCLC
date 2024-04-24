@@ -4,7 +4,9 @@ process CORRELATE_PEAKS_GENES {
     """
     container "nciccbr/sclc_r-quarto:v0.3.3"
     cpus 16
-    memory '200 GB'
+    memory '800 GB'
+    queue 'largemem'
+    time '24 h'
 
     input:
         tuple path(metadata_infile), path(rna_counts_infile), path(atac_counts_infile), path(peak_gene_infile)
