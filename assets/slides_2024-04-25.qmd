@@ -48,8 +48,9 @@ set.seed(20240326)
 - Construct TF-peak network with TF footprints from HINT-ATAC.
   - Previously used TOBIAS, which only reported TF-TF networks rather than all TF-gene relationships.
 - Link ATAC peaks to genes from RNA expression with similar method as Tang _et al._.
-  - Selected peaks within a 0.5mbp window around gene TSSs to include promoters _and_ enhancers.
-  - Filter peak-gene links by Pearson correlation FDR < 0.01.
+  - Previously: select peaks in promoter regions of gene TSSs (**2kbp** window)
+  - Now: select peaks within a **0.5mbp** window around gene TSSs to include promoters _and_ enhancers.
+    - Run Pearson correlation on peak scores & gene counts, filter peak-gene links by FDR < 0.01.
 - Re-rank top TFs per cluster.
 
 ## Network construction from Tang _et al._
@@ -137,17 +138,7 @@ top_tfs_hint <- read_csv(params$top_tfs_hint)
     theme(strip.text = element_blank()))
 ```
 
-## TF distributions
-
-```{r tf_rank}
-tf_rank_hint <- read_tsv(params$tf_ranks_hint)
-tf_rank_hint %>%
-    pivot_longer(c(A_diff, E_diff, O_diff)) %>%
-    ggplot(aes(value, fill = cluster_id)) +
-    geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
-    facet_wrap(~ name, scales = 'free_x') +
-    labs(title = 'HINT-ATAC')
-```
+## TF distributions - TOBIAS
 ```{r tf_rank_tobi}
 tf_rank_tobi <- read_tsv(params$tf_ranks_tobias)
 tf_rank_tobi %>%
@@ -157,3 +148,21 @@ tf_rank_tobi %>%
     facet_wrap(~ name, scales = 'free_x') +
     labs(title = 'TOBIAS')
 ```
+
+## TF distributions - HINT-ATAC
+```{r tf_rank}
+tf_rank_hint <- read_tsv(params$tf_ranks_hint)
+tf_rank_hint %>%
+    pivot_longer(c(A_diff, E_diff, O_diff)) %>%
+    ggplot(aes(value, fill = cluster_id)) +
+    geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
+    facet_wrap(~ name, scales = 'free_x') +
+    labs(title = 'HINT-ATAC')
+```
+
+## Next
+
+- Double-check matching of atac-seq & rna-seq sample IDs.
+  - Matched 28 of 39 sample IDs between ATAC-seq and RNA-seq.
+  - For most peak-gene pairs, both an ATAC-seq and RNA-seq count could only be found for 12 of 39 samples.
+- How were consensus peaks merged and selected?
