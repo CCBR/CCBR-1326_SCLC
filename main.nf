@@ -1,42 +1,37 @@
 // nf-core
-include { GUNZIP                   } from './modules/nf-core/gunzip'
-include { QUARTONOTEBOOK           } from './modules/nf-core/quartonotebook'
+include { GUNZIP                    } from './modules/nf-core/gunzip'
+include { QUARTONOTEBOOK            } from './modules/nf-core/quartonotebook'
 // CCBR
-include { CAT_CAT                  } from './modules/CCBR/cat/cat'
+include { CAT_CAT                   } from './modules/CCBR/cat/cat'
 // local
-include { ATAC_LOGFC_BED           } from './modules/local/atac_logfc_bed'
-include { BEDTOOLS_INTERSECT       } from './modules/local/bedtools/intersect'
+include { ATAC_LOGFC_BED            } from './modules/local/atac_logfc_bed'
+include { BEDTOOLS_INTERSECT        } from './modules/local/bedtools/intersect'
 include { BEDTOOLS_INTERSECT_FULL as BEDTOOLS_INTERSECT_TSS    } from './modules/local/bedtools/intersect'
 include { BEDTOOLS_INTERSECT_FULL as BEDTOOLS_INTERSECT_MOTIF
-                                   } from './modules/local/bedtools/intersect'
-include { JOIN_PEAKS_PROMOTERS     } from './modules/local/join_peaks_promoters'
-include { JOIN_ATAC_RNA            } from './modules/local/join_atac_rna'
-include { COUNT_INTERSECT          } from './modules/local/count_intersect'
+                                    } from './modules/local/bedtools/intersect'
+include { JOIN_PEAKS_PROMOTERS      } from './modules/local/join_peaks_promoters'
+include { JOIN_ATAC_RNA             } from './modules/local/join_atac_rna'
+include { COUNT_INTERSECT           } from './modules/local/count_intersect'
 include { ROWBIND as ROWBIND_COUNT;
-          ROWBIND as ROWBIND_LOGFC } from './modules/local/rowbind'
-include { MATRIX_BED               } from './modules/local/matrix_bed'
-include { CHROMVAR                 } from './modules/local/chromvar/chromvar'
-include { CHROMVAR_SUBSET          } from './modules/local/chromvar/chromvar_subset'
-include { HINT_FOOTPRINTING        } from './modules/local/rgt/hint/footprinting'
-include { MOTIFANALYSIS_MATCHING   } from './modules/local/rgt/motifanalysis'
-include { MOTIF2GENE_MAPPING       } from './modules/local/motif2gene_mapping'
-include { CLUSTERPROFILER          } from './modules/local/clusterProfiler'
-include { EXTRACT_TSS              } from './modules/local/extract_tss'
-include { STRIP_TAB                } from './modules/local/strip_tab'
-include { FILTER_FOOTPRINTS        } from './modules/local/filter_footprints'
-include { REFORMAT_BED_INTERSECT   } from './modules/local/reformat_bed_intersect'
-include { NETWORK_OUTDEGREE        } from './modules/local/network_outdegree'
-include { CORRELATE_PEAKS_GENES    } from './modules/local/correlate_peaks_genes'
-include { CORRELATE_PAIR           } from './modules/local/corr_peak_gene_pair'
-//include { JOIN_CORRELATIONS        }
-//include { FILTER_CORR_BED          }
+          ROWBIND as ROWBIND_LOGFC  } from './modules/local/rowbind'
+include { MATRIX_BED                } from './modules/local/matrix_bed'
+include { CHROMVAR                  } from './modules/local/chromvar/chromvar'
+include { CHROMVAR_SUBSET           } from './modules/local/chromvar/chromvar_subset'
+include { HINT_FOOTPRINTING         } from './modules/local/rgt/hint/footprinting'
+include { MOTIFANALYSIS_MATCHING    } from './modules/local/rgt/motifanalysis'
+include { MOTIF2GENE_MAPPING        } from './modules/local/motif2gene_mapping'
+include { CLUSTERPROFILER           } from './modules/local/clusterProfiler'
+include { EXTRACT_TSS               } from './modules/local/extract_tss'
+include { STRIP_TAB                 } from './modules/local/strip_tab'
+include { FILTER_FOOTPRINTS         } from './modules/local/filter_footprints'
+include { REFORMAT_BED_INTERSECT    } from './modules/local/reformat_bed_intersect'
+include { NETWORK_OUTDEGREE         } from './modules/local/network_outdegree'
+include { MATCH_SAMPLES_PEAKS_GENES } from './modules/local/match_sample_peaks_genes'
+include { CORRELATE_PAIR            } from './modules/local/corr_peak_gene_pair'
+include { FILTER_CORR_BED           } from './modules/local/filter_corr_bed'
+
 
 workflow {
-    Channel.fromPath("output/gene_peak_pairs/*.tsv") |
-        CORRELATE_PAIR
-}
-
-workflow mainwf {
     gtf = file(params.gtf, checkIfExists: true)
     pfm = file(params.pfm, checkIfExists: true)
     chrom_sizes = file(params.chrom_sizes, checkIfExists: true)
@@ -63,7 +58,7 @@ workflow mainwf {
     // chromvar on each cluster individually
     //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
-    ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints
+    ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
 
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
@@ -74,18 +69,20 @@ workflow mainwf {
         | REFORMAT_BED_INTERSECT
         | map{ meta, bed -> bed }
 
-    Channel.fromPath([file(params.metadata, checkIfExists: true),
+    ch_peaks_genes = Channel.fromPath([file(params.metadata, checkIfExists: true),
                       file(params.rna_counts_norm, checkIfExists: true),
                       file(params.atac_counts_norm, checkIfExists: true)
-                     ])
-        .collect()
-        .combine(ch_peaks_tss)
-        | CORRELATE_PEAKS_GENES
+                     ]).collect().combine(ch_peaks_tss)
+        | MATCH_SAMPLES_PEAKS_GENES
+        | flatten() // split list of files so correlate runs on each file
+        | CORRELATE_PAIR
+        | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
+        | FILTER_CORR_BED
 
-    ch_tf_genes = BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_tss)).intersect
-        | FILTER_FOOTPRINTS
-    ch_tf_genes | NETWORK_OUTDEGREE
-    ß
+    BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
+        | NETWORK_OUTDEGREE
+        | collectFile(name: 'tf_outdegree_concat.tsv', storeDir: "${params.outdir}/network_outdegree_concat", keepHeader: true, skip: 1)
+
 }
 
 workflow RGT {

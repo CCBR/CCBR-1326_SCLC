@@ -11,10 +11,10 @@ process FILTER_FOOTPRINTS {
     tuple val(meta), path(infile)
 
     output:
-    tuple val(meta), path("*.filt.tsv")
+    tuple val(meta), path("*.filt.bed")
 
     script:
-    outfile = "${infile.baseName}.filt.tsv"
+    outfile = "${infile.baseName}.filt.bed"
     template 'filter_footprints.R'
 
     stub:

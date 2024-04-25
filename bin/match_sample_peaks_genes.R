@@ -5,8 +5,6 @@ library(purrr)
 library(readr)
 library(stringr)
 library(tidyr)
-library(future)
-library(furrr)
 
 main <-
   function(metadata_infile = "assets/matched_atac_RNA_metadata.csv",
@@ -16,8 +14,6 @@ main <-
            peak_gene_outfile = "output/peaks_genes_corr.csv",
            ncores = 8,
            pvalue_thresh = 0.01) {
-    plan(multicore, workers = min(ncores, availableCores()))
-
     # integrate RNA-seq with ATAC-seq
     metadat <- read_csv(metadata_infile)
     rna_counts_norm <- read_csv(rna_counts_infile)
@@ -90,13 +86,13 @@ main <-
     rm(
       list = c(
         "atac_counts_norm",
-        #"atac_counts_norm_long",
+        "atac_counts_norm_long",
         "metadat",
         "metadat_join",
         "peak_gene_tss",
-        "rna_counts_norm"
-        #"rna_counts_norm_long",
-        #"samples_mapped"
+        "rna_counts_norm",
+        "rna_counts_norm_long",
+        "samples_mapped"
       )
     )
     counts_sum <- counts_join %>%
@@ -116,17 +112,17 @@ main <-
       nest()
 
     counts_grp %>%
-        pmap(\(gene_name, peak_coord, data) {
-            filename <- here::here('output', 'gene_peak_pairs', glue("{gene_name}_{peak_coord}.tsv"))
-            write_tsv(data, filename)
-        })
-}
+      pmap(\(gene_name, peak_coord, data) {
+        filename <- glue("matched_{gene_name}_{peak_coord}.tsv")
+        write_tsv(data, filename)
+      })
+  }
 
+
+args <- commandArgs(trailingOnly = TRUE)
 main(
-  metadata_infile = "${metadata_infile}",
-  rna_counts_infile = "${rna_counts_infile}",
-  atac_counts_infile = "${atac_counts_infile}",
-  peak_gene_infile = "${peak_gene_infile}",
-  peak_gene_outfile = "${peak_gene_outfile}",
-  ncores = as.integer("${task.cpus}")
+  metadata_infile = args[1],
+  rna_counts_infile = args[2],
+  atac_counts_infile = args[3],
+  peak_gene_infile = args[4]
 )

@@ -12,7 +12,7 @@ process CORRELATE_PAIR {
 
     script:
     peak_gene_outfile = "${tsv.baseName}_corr.tsv"
-    template 'correlation.R'
+    "correlation.R ${tsv}"
 
     stub:
     """
