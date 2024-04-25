@@ -49,7 +49,7 @@ calc_zscore_diff <- function(dat, score_col = z_score) {
         filter(cluster_id != cluster) %>%
         pull(z_score_sum) %>%
         sum() / cluster_counts %>%
-          filter(cluster_id == cluster) %>%
+          filter(cluster_id != cluster) %>%
           pull(n) %>%
           sum()
       return(tibble(
@@ -220,3 +220,5 @@ tf_rank_dat %>%
       limits = c(-20, 20)
     ) +
     theme(strip.text = element_blank()))
+
+write_tsv(tf_rank_dat, file = "data/tf_ranks_tobias.tsv")
