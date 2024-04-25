@@ -12,7 +12,8 @@ params:
   chromvar_rdata:   "output/chromvar/chromVAR.results.RData"
   top_tfs_tobias: 'assets/top_TFs_TOBIAS.csv'
   top_tfs_hint: 'assets/top_TFs_HINT.csv'
-  tf_ranks_all: 'data/tf_rank_dat.tsv'
+  tf_ranks_hint: 'data/tf_rank_HINT.tsv'
+  tf_ranks_tobias: 'data/tf_ranks_tobias.tsv'
 ---
 
 ```{r setup}
@@ -139,11 +140,20 @@ top_tfs_hint <- read_csv(params$top_tfs_hint)
 ## TF distributions
 
 ```{r tf_rank}
-tf_rank_dat <- read_tsv(params$tf_ranks_all)
-tf_rank_dat %>%
+tf_rank_hint <- read_tsv(params$tf_ranks_hint)
+tf_rank_hint %>%
     pivot_longer(c(A_diff, E_diff, O_diff)) %>%
     ggplot(aes(value, fill = cluster_id)) +
     geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
-    facet_wrap(~ name, scales = 'free_x')
+    facet_wrap(~ name, scales = 'free_x') +
+    labs(title = 'HINT-ATAC')
 ```
-
+```{r tf_rank_tobi}
+tf_rank_tobi <- read_tsv(params$tf_ranks_tobias)
+tf_rank_tobi %>%
+    pivot_longer(c(A_diff, E_diff, O_diff)) %>%
+    ggplot(aes(value, fill = cluster_id)) +
+    geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
+    facet_wrap(~ name, scales = 'free_x') +
+    labs(title = 'TOBIAS')
+```

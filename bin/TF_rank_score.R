@@ -251,4 +251,4 @@ tf_rank_dat %>%
   geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
   facet_wrap(~name, scales = "free")
 
-write_tsv(tf_rank_dat, file = "data/tf_rank_dat.tsv")
+write_tsv(tf_rank_dat, file = "data/tf_rank_HINT.tsv")
