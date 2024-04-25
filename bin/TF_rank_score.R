@@ -40,18 +40,18 @@ calc_zscore_diff <- function(dat, score_col = z_score) {
     summarise(z_score_sum = sum({{ score_col }}))
   clusters %>%
     map(function(cluster) {
-      z_score_avg_in <- dat_sum %>%
+      z_score_avg_in <- (dat_sum %>%
         filter(cluster_id == cluster) %>%
-        pull(z_score_sum) / cluster_counts %>%
-          filter(cluster_id == cluster) %>%
-          pull(n)
-      z_score_avg_out <- dat_sum %>%
+        pull(z_score_sum)) / (cluster_counts %>%
+        filter(cluster_id == cluster) %>%
+        pull(n))
+      z_score_avg_out <- (dat_sum %>%
         filter(cluster_id != cluster) %>%
         pull(z_score_sum) %>%
-        sum() / cluster_counts %>%
-          filter(cluster_id == cluster) %>%
-          pull(n) %>%
-          sum()
+        sum()) / (cluster_counts %>%
+        filter(cluster_id == cluster) %>%
+        pull(n) %>%
+        sum())
       return(tibble(
         cluster_id = cluster,
         score_diff = z_score_avg_in - z_score_avg_out
@@ -78,7 +78,7 @@ atac_scores <- chromvar_dat %>%
   )
 
 
-# E_diff (Expression difference) as the third criterion,
+# E_diff (Expression difference)
 # based on the assumption that TFs with higher relative expression are more important in that subtype of samples
 diff_dat <- read_tsv("output/rowbind_logfc/concat.atac_rna.tsv")
 
@@ -91,52 +91,39 @@ expr_scores <- diff_dat %>%
   ) %>%
   select(gene_name, cluster_id, E_diff)
 
-# O_diff
 
-# for tobias we have just one network per group of samples,
-# so we don't normalize by number of samples in the group
-calc_outdegree_diff <- function(dat, score_col = log2_outdegree_avg) {
-  clusters <- dat %>%
-    pull(cluster_id) %>%
-    unique()
-  clusters %>%
-    map(function(cluster) {
-      z_score_avg_in <- dat %>%
-        filter(cluster_id == cluster) %>%
-        pull({{ score_col }})
-      z_score_avg_out <- dat %>%
-        filter(cluster_id != cluster) %>%
-        pull({{ score_col }}) %>%
-        sum()
-      return(tibble(
-        cluster_id = cluster,
-        score_diff = z_score_avg_in - z_score_avg_out
-      ))
-    }) %>%
-    bind_rows()
-}
-adjacency <- read_tsv("ccbr_tobias/adjacency_outdegree.tsv")
+# O_diff (Out-degree difference)
+# We assume if a TF is important in one subtype of samples,
+# it would regulate more genes in that subtype relative to other subtypes,
+# as demonstrated with a higher O_diff
 
-outdegree_sums <- adjacency %>%
-  group_by(cluster_id) %>%
-  summarize(sum_outdegree = sum(outdegree))
+outdegree_dat <- read_tsv("output/network_outdegree_concat/tf_outdegree_concat.tsv") %>%
+  left_join(cluster_membership)
 
-outdegree_scores <- adjacency %>%
+outdegree_sums <- outdegree_dat %>%
+  group_by(sample_id) %>%
+  nest() %>%
+  mutate(sum_outdegree = map(data, ~ sum(.x$outdegree))) %>%
+  select(-data) %>%
+  unnest(sum_outdegree)
+
+outdegree_scores <- outdegree_dat %>%
   left_join(cluster_counts) %>%
   left_join(outdegree_sums) %>%
+  group_by(sample_id) %>%
   mutate(log2_outdegree_avg = log2(outdegree / sum_outdegree)) %>%
-  group_by(Source) %>%
+  ungroup() %>%
+  group_by(TF_name) %>%
   nest() %>%
-  mutate(O_diff = map(data, calc_outdegree_diff, score_col = log2_outdegree_avg)) %>%
+  mutate(O_diff = map(data, calc_zscore_diff, score_col = log2_outdegree_avg)) %>%
   unnest(O_diff) %>%
   select(-data) %>%
   rename(
     O_diff = score_diff,
-    gene_name = Source
+    gene_name = TF_name
   )
 
 # overall rank
-
 rank_col <- function(dat, value_col = A_diff, group_col = cluster_id) {
   dat %>%
     group_by({{ group_col }}) %>%
@@ -187,7 +174,7 @@ top_tfs <- tf_rank_dat %>%
     accessibility = A_diff
   )
 
-write_csv(top_tfs, "assets/top_TFs.csv")
+write_csv(top_tfs, "assets/top_TFs_HINT.csv")
 
 min_max <- list(
   min = ~ min(.x, na.rm = TRUE),
@@ -200,14 +187,12 @@ tf_rank_dat %>%
 (plot_heatmap_row(top_tfs, outdegree) +
   colorspace::scale_fill_continuous_diverging(
     palette = "Blue-Red",
-    limits = c(-10.5, 10.5)
   ) +
   theme(axis.text.x = element_blank())
 ) /
   (plot_heatmap_row(top_tfs, expression) +
     colorspace::scale_fill_continuous_diverging(
       palette = "Green-Orange",
-      limits = c(-7.31, 7.31)
     ) +
     theme(
       axis.text.x = element_blank(),
@@ -217,6 +202,5 @@ tf_rank_dat %>%
   (plot_heatmap_row(top_tfs, accessibility) +
     colorspace::scale_fill_continuous_diverging(
       palette = "Purple-Green",
-      limits = c(-20, 20)
     ) +
     theme(strip.text = element_blank()))

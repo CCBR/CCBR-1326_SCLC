@@ -11,7 +11,6 @@ main <-
            rna_counts_infile = "data/rna_counts_normalized.csv",
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
            peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed",
-           peak_gene_outfile = "output/peaks_genes_corr.csv",
            ncores = 8,
            pvalue_thresh = 0.01) {
     # integrate RNA-seq with ATAC-seq

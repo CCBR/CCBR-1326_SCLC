@@ -58,11 +58,7 @@ workflow {
     // chromvar on each cluster individually
     //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
-    //ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
-    ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
-        .map{ file ->
-            [ [ id: file.baseName.strip('_mpbs.fixed.filt') ], file ]
-        }
+    ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
 
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
@@ -73,18 +69,22 @@ workflow {
         | REFORMAT_BED_INTERSECT
         | map{ meta, bed -> bed }
 
+    /*
     ch_peaks_genes = Channel.fromPath([file(params.metadata, checkIfExists: true),
                       file(params.rna_counts_norm, checkIfExists: true),
                       file(params.atac_counts_norm, checkIfExists: true)
                      ]).collect().combine(ch_peaks_tss)
         | MATCH_SAMPLES_PEAKS_GENES
         | flatten() // split list of files so correlate runs on each file
+    */ // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
+    ch_peaks_genes = Channel.fromPath('output/match_samples_peaks_genes/matched_*.tsv')
         | CORRELATE_PAIR
         | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
         | FILTER_CORR_BED
 
     BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
         | NETWORK_OUTDEGREE
+        | map { meta, file -> file }
         | collectFile(name: 'tf_outdegree_concat.tsv', storeDir: "${params.outdir}/network_outdegree_concat", keepHeader: true, skip: 1)
 
 }
