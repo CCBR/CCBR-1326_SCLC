@@ -7,12 +7,10 @@ library(stringr)
 library(tidyr)
 
 main <-
-  function(metadata_infile = "assets/matched_atac_RNA_metadata.csv",
+  function(metadata_infile = "assets/matched_atac_RNAdata.csv",
            rna_counts_infile = "data/rna_counts_normalized.csv",
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
-           peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed",
-           ncores = 8,
-           pvalue_thresh = 0.01) {
+           peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed") {
     # integrate RNA-seq with ATAC-seq
     metadat <- read_csv(metadata_infile)
     rna_counts_norm <- read_csv(rna_counts_infile)
@@ -29,17 +27,20 @@ main <-
     atac_counts_norm_long <- atac_counts_norm %>%
       rename(peak_coord = Coordinate) %>%
       pivot_longer(-peak_coord,
-        names_to = "atac_sample_id",
+        names_to = "atac_sample_id_orig",
         values_to = "atac_count"
       ) %>%
       mutate(
-        atac_sample_id = str_extract(atac_sample_id,
-          pattern = "([a-zA-Z0-9]+)[a-zA-Z0-9_]+",
+        atac_sample_id = str_extract(atac_sample_id_orig,
+          pattern = "([a-zA-Z0-9]+)_S.*",
           group = 1
         )
       ) %>%
       right_join(peak_gene_tss, relationship = "many-to-many")
 
+    atac_ids <- atac_counts_norm_long %>%
+      select(atac_sample_id_orig, atac_sample_id) %>%
+      distinct()
 
     rna_counts_norm_long <- rna_counts_norm %>%
       rename(gene_name = hgnc_symbol) %>%
@@ -49,29 +50,36 @@ main <-
         values_to = "rna_count"
       )
 
+    rna_ids <- rna_counts_norm_long %>%
+      select(rna_sample_id) %>%
+      distinct()
+
     metadat_join <- metadat %>%
       filter(`Matching Bulk RNA (Y/N)` == "Y") %>%
-      rename(RNA_ID = `Matching Bulk RNA ID`) %>%
-      select(ATAC_ID, RNA_ID) %>%
-      separate_longer_delim(RNA_ID, "/") %>%
-      mutate(RNA_ID = str_remove(RNA_ID, "Sample_")) %>%
-      mutate(ATAC_ID = str_extract(ATAC_ID,
-        pattern = "([a-zA-Z0-9]+)[a-zA-Z0-9_]+",
+      rename(
+        rna_id = `Matching Bulk RNA ID`,
+        atac_id_orig = ATAC_ID
+      ) %>%
+      select(atac_id_orig, rna_id) %>%
+      separate_longer_delim(rna_id, "/") %>%
+      mutate(rna_id = str_remove(rna_id, "Sample_")) %>%
+      mutate(atac_id = str_extract(atac_id_orig,
+        pattern = "([a-zA-Z0-9]+)",
         group = 1
       )) %>%
       full_join(
-        atac_counts_norm_long %>% select(atac_sample_id) %>% distinct(),
-        by = c("ATAC_ID" = "atac_sample_id")
+        atac_ids,
+        by = c("atac_id" = "atac_sample_id")
       ) %>%
       full_join(
-        rna_counts_norm_long %>% select(rna_sample_id) %>% distinct(),
-        by = c("RNA_ID" = "rna_sample_id")
+        rna_ids,
+        by = c("rna_id" = "rna_sample_id")
       )
     samples_mapped <- metadat_join %>%
-      filter(!is.na(ATAC_ID), !is.na(RNA_ID)) %>%
+      filter(!is.na(atac_id), !is.na(rna_id)) %>%
       rename(
-        rna_sample_id = RNA_ID,
-        atac_sample_id = ATAC_ID
+        rna_sample_id = rna_id,
+        atac_sample_id = atac_id
       )
 
     counts_join <- full_join(
@@ -100,6 +108,15 @@ main <-
       group_by(gene_name, peak_coord) %>%
       summarize(n = n()) %>%
       filter(n > 10)
+
+    counts_join %>%
+      filter(!is.na(atac_count) | !is.na(rna_count)) %>%
+      right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
+        by = c("gene_name", "peak_coord")
+      ) %>%
+      select(atac_sample_id, rna_sample_id) %>%
+      distinct()
+
 
     counts_grp <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
