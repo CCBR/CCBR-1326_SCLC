@@ -49,7 +49,7 @@ calc_zscore_diff <- function(dat, score_col = z_score) {
         filter(cluster_id != cluster) %>%
         pull(z_score_sum) %>%
         sum()) / (cluster_counts %>%
-        filter(cluster_id == cluster) %>%
+        filter(cluster_id != cluster) %>%
         pull(n) %>%
         sum())
       return(tibble(
@@ -84,7 +84,6 @@ diff_dat <- read_tsv("output/rowbind_logfc/concat.atac_rna.tsv")
 
 expr_scores <- diff_dat %>%
   select(gene_name, log2FoldChange_rna, pvalue_rna, cluster_id) %>%
-  # rename_with( ~str_remove(.x, '_rna'), .cols = ends_with('_rna')) %>%
   mutate(
     minus_log10_pvalue = -log10(pvalue_rna),
     E_diff = minus_log10_pvalue * log2FoldChange_rna / abs(log2FoldChange_rna)
@@ -105,17 +104,16 @@ outdegree_sums <- outdegree_dat %>%
   nest() %>%
   mutate(sum_outdegree = map(data, ~ sum(.x$outdegree))) %>%
   select(-data) %>%
-  unnest(sum_outdegree)
-
-outdegree_scores <- outdegree_dat %>%
+  unnest(sum_outdegree) %>%
+  ungroup()
+outdegree_dat_norm <- outdegree_dat %>%
   left_join(cluster_counts) %>%
   left_join(outdegree_sums) %>%
-  group_by(sample_id) %>%
-  mutate(log2_outdegree_avg = log2(outdegree / sum_outdegree)) %>%
-  ungroup() %>%
+  mutate(log2_outdegree_norm = log2(outdegree / sum_outdegree))
+outdegree_scores <- outdegree_dat_norm %>%
   group_by(TF_name) %>%
   nest() %>%
-  mutate(O_diff = map(data, calc_zscore_diff, score_col = log2_outdegree_avg)) %>%
+  mutate(O_diff = map(data, calc_zscore_diff, score_col = log2_outdegree_norm)) %>%
   unnest(O_diff) %>%
   select(-data) %>%
   rename(
@@ -204,3 +202,53 @@ tf_rank_dat %>%
       palette = "Purple-Green",
     ) +
     theme(strip.text = element_blank()))
+
+# debugging distribution of outdegrees
+outdegree_dat %>%
+  ggplot(aes(outdegree, fill = cluster_id)) +
+  geom_histogram(alpha = 0.5, position = position_identity(), bins = 20)
+
+outdegree_dat_norm %>%
+  ggplot(aes(log2_outdegree_norm, fill = cluster_id)) +
+  geom_histogram(alpha = 0.5, position = position_identity(), bins = 20)
+
+outdegree_dat_norm %>%
+  select(sample_id, sum_outdegree, cluster_id) %>%
+  distinct() %>%
+  ggplot(aes(sum_outdegree, fill = cluster_id)) +
+  geom_histogram(alpha = 0.5, position = position_identity())
+
+outdegree_scores %>%
+  ggplot(aes(O_diff, fill = cluster_id)) +
+  geom_histogram(alpha = 0.5, position = position_identity(), bins = 20)
+
+dat <- outdegree_dat %>%
+  left_join(cluster_counts) %>%
+  left_join(outdegree_sums) %>%
+  mutate(log2_outdegree_norm = log2(outdegree / sum_outdegree)) %>%
+  filter(TF_name == "ARNT2")
+dat_sum <- dat %>%
+  group_by(cluster_id) %>%
+  summarise(z_score_sum = sum(log2_outdegree_norm))
+cluster <- "c3"
+z_score_avg_in <- (dat_sum %>%
+  filter(cluster_id == cluster) %>%
+  pull(z_score_sum)) / (cluster_counts %>%
+  filter(cluster_id == cluster) %>%
+  pull(n))
+z_score_avg_out <- (dat_sum %>%
+  filter(cluster_id != cluster) %>%
+  pull(z_score_sum) %>%
+  sum()) / (cluster_counts %>%
+  filter(cluster_id != cluster) %>%
+  pull(n) %>%
+  sum())
+score_diff <- z_score_avg_in - z_score_avg_out
+
+tf_rank_dat %>%
+  pivot_longer(c(A_diff, E_diff, O_diff)) %>%
+  ggplot(aes(value, fill = cluster_id)) +
+  geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
+  facet_wrap(~name, scales = "free")
+
+write_tsv(tf_rank_dat, file = "data/tf_rank_dat.tsv")

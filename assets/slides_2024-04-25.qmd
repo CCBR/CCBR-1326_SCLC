@@ -12,6 +12,7 @@ params:
   chromvar_rdata:   "output/chromvar/chromVAR.results.RData"
   top_tfs_tobias: 'assets/top_TFs_TOBIAS.csv'
   top_tfs_hint: 'assets/top_TFs_HINT.csv'
+  tf_ranks_all: 'data/tf_rank_dat.tsv'
 ---
 
 ```{r setup}
@@ -93,12 +94,14 @@ top_tfs_tobi <- read_csv(params$top_tfs_tobias)
 # plot TFs patchwork
 (plot_heatmap_row(top_tfs_tobi, outdegree) +
   colorspace::scale_fill_continuous_diverging(palette = 'Blue-Red',
-                                              limits = c(-10.5,10.5)) +
+                                              #limits = c(-10.5,10.5)
+                                              ) +
   theme(axis.text.x = element_blank())
 ) /
   (plot_heatmap_row(top_tfs_tobi, expression) +
     colorspace::scale_fill_continuous_diverging(palette = 'Green-Orange',
-                                                limits = c(-7.31,7.31)) +
+                                                #limits = c(-7.31,7.31)
+                                                ) +
     theme(
       axis.text.x = element_blank(),
       strip.text = element_blank()
@@ -106,7 +109,8 @@ top_tfs_tobi <- read_csv(params$top_tfs_tobias)
   ) /
   (plot_heatmap_row(top_tfs_tobi, accessibility) +
        colorspace::scale_fill_continuous_diverging(palette = 'Purple-Green',
-                                                   limits = c(-20,20))  +
+                                                   #limits = c(-20,20)
+                                                   )  +
     theme(strip.text = element_blank()))
 ```
 
@@ -131,3 +135,15 @@ top_tfs_hint <- read_csv(params$top_tfs_hint)
        colorspace::scale_fill_continuous_diverging(palette = 'Purple-Green')  +
     theme(strip.text = element_blank()))
 ```
+
+## TF distributions
+
+```{r tf_rank}
+tf_rank_dat <- read_tsv(params$tf_ranks_all)
+tf_rank_dat %>%
+    pivot_longer(c(A_diff, E_diff, O_diff)) %>%
+    ggplot(aes(value, fill = cluster_id)) +
+    geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
+    facet_wrap(~ name, scales = 'free_x')
+```
+
