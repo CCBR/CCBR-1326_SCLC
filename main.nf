@@ -58,7 +58,11 @@ workflow {
     // chromvar on each cluster individually
     //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
-    ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
+    //ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
+    ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
+        .map{ file ->
+            [ [ id: file.baseName.strip('_mpbs.fixed.filt') ], file ]
+        }
 
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
