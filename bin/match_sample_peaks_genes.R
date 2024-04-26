@@ -7,7 +7,7 @@ library(stringr)
 library(tidyr)
 
 main <-
-  function(metadata_infile = "assets/matched_atac_RNAdata.csv",
+  function(metadata_infile = "assets/matched_atac_RNA_metadata.csv",
            rna_counts_infile = "data/rna_counts_normalized.csv",
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
            peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed") {
@@ -108,6 +108,15 @@ main <-
       group_by(gene_name, peak_coord) %>%
       summarize(n = n()) %>%
       filter(n > 10)
+
+    counts_join %>%
+      mutate(
+        atac_status = if_else(is.na(atac_count), "missing", "present"),
+        rna_status = if_else(is.na(rna_count), "missing", "present")
+      ) %>%
+      group_by(atac_sample_id, rna_sample_id, atac_status, rna_status) %>%
+      summarize(n = n()) %>%
+      write_tsv("assets/matched_IDs_present.tsv")
 
     counts_join %>%
       filter(!is.na(atac_count) | !is.na(rna_count)) %>%
