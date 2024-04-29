@@ -7,12 +7,12 @@ library(stringr)
 library(tidyr)
 
 main <-
-  function(metadata_infile = "assets/matched_atac_RNA_metadata.csv",
+  function(metadata_infile = "assets/metadata_for_kelley.xlsx",
            rna_counts_infile = "data/rna_counts_normalized.csv",
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
            peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed") {
     # integrate RNA-seq with ATAC-seq
-    metadat <- read_csv(metadata_infile)
+    metadat <- readxl::read_excel(metadata_infile)
     rna_counts_norm <- read_csv(rna_counts_infile)
     atac_counts_norm <-
       read_csv(atac_counts_infile)
@@ -46,20 +46,26 @@ main <-
       rename(gene_name = hgnc_symbol) %>%
       right_join(peak_gene_tss) %>%
       pivot_longer(-c(peak_coord, gene_name),
-        names_to = "rna_sample_id",
+        names_to = "rna_sample_id_orig",
         values_to = "rna_count"
-      )
+      ) %>%
+      mutate(rna_sample_id = str_remove(rna_sample_id_orig, "Sample_"))
 
     rna_ids <- rna_counts_norm_long %>%
-      select(rna_sample_id) %>%
+      select(rna_sample_id_orig, rna_sample_id) %>%
       distinct()
 
     metadat_join <- metadat %>%
-      filter(`Matching Bulk RNA (Y/N)` == "Y") %>%
       rename(
         rna_id = `Matching Bulk RNA ID`,
         atac_id_orig = ATAC_ID
       ) %>%
+      mutate(rna_id = case_when(
+        rna_id == "N" & !is.na(`Parth Found_RNA_ID`) ~ `Parth Found_RNA_ID`,
+        rna_id == "N" ~ NA_character_,
+        TRUE ~ rna_id
+      )) %>%
+      filter(!is.na(rna_id)) %>%
       select(atac_id_orig, rna_id) %>%
       separate_longer_delim(rna_id, "/") %>%
       mutate(rna_id = str_remove(rna_id, "Sample_")) %>%
@@ -104,7 +110,7 @@ main <-
     )
     counts_sum <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
-      select(-rna_sample_id) %>%
+      select(-rna_sample_id, ends_with("_orig")) %>%
       group_by(gene_name, peak_coord) %>%
       summarize(n = n()) %>%
       filter(n > 10)
@@ -116,16 +122,8 @@ main <-
       ) %>%
       group_by(atac_sample_id, rna_sample_id, atac_status, rna_status) %>%
       summarize(n = n()) %>%
+      filter(atac_status == "present", rna_status == "present") %>%
       write_tsv("assets/matched_IDs_present.tsv")
-
-    counts_join %>%
-      filter(!is.na(atac_count) | !is.na(rna_count)) %>%
-      right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
-        by = c("gene_name", "peak_coord")
-      ) %>%
-      select(atac_sample_id, rna_sample_id) %>%
-      distinct()
-
 
     counts_grp <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
