@@ -18,7 +18,7 @@ genes_df <- tibble(hgnc_symbol = gene_symbols, entrez_id = names(gene_symbols)) 
   mutate(gene_len_kb = gene_length / 1000)
 
 # Calculate TMM-normalized RPKM with edgeR
-raw_rna_counts <- read_tsv("data/RNA_new_df_updated_rawcount.tsv")
+raw_rna_counts <- read_tsv("data/RNA_new_df_updated_final_new.tsv")
 gene_lengths_df <- genes_df %>%
   right_join(raw_rna_counts, by = c("hgnc_symbol" = "Gene_Id")) %>%
   dplyr::select(hgnc_symbol, gene_length) %>%

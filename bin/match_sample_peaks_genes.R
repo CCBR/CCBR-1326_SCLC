@@ -27,11 +27,11 @@ main <-
     atac_counts_norm_long <- atac_counts_norm %>%
       rename(peak_coord = Coordinate) %>%
       pivot_longer(-peak_coord,
-        names_to = "atac_sample_id_orig",
+        names_to = "atac_id_sample",
         values_to = "atac_count"
       ) %>%
       mutate(
-        atac_sample_id = str_extract(atac_sample_id_orig,
+        atac_sample_id = str_extract(atac_id_sample,
           pattern = "([a-zA-Z0-9]+)_S.*",
           group = 1
         )
@@ -39,37 +39,37 @@ main <-
       right_join(peak_gene_tss, relationship = "many-to-many")
 
     atac_ids <- atac_counts_norm_long %>%
-      select(atac_sample_id_orig, atac_sample_id) %>%
+      select(atac_id_sample, atac_sample_id) %>%
       distinct()
 
     rna_counts_norm_long <- rna_counts_norm %>%
       rename(gene_name = hgnc_symbol) %>%
       right_join(peak_gene_tss) %>%
       pivot_longer(-c(peak_coord, gene_name),
-        names_to = "rna_sample_id_orig",
+        names_to = "rna_id_sample",
         values_to = "rna_count"
       ) %>%
-      mutate(rna_sample_id = str_remove(rna_sample_id_orig, "Sample_"))
+      mutate(rna_sample_id = str_remove(rna_id_sample, "^Sample_\\d+_"))
 
     rna_ids <- rna_counts_norm_long %>%
-      select(rna_sample_id_orig, rna_sample_id) %>%
+      select(rna_id_sample, rna_sample_id) %>%
       distinct()
 
     metadat_join <- metadat %>%
       rename(
-        rna_id = `Matching Bulk RNA ID`,
-        atac_id_orig = ATAC_ID
+        rna_id_meta = `Matching Bulk RNA ID`,
+        atac_id_meta = ATAC_ID
       ) %>%
-      mutate(rna_id = case_when(
-        rna_id == "N" & !is.na(`Parth Found_RNA_ID`) ~ `Parth Found_RNA_ID`,
-        rna_id == "N" ~ NA_character_,
-        TRUE ~ rna_id
+      mutate(rna_id_meta = case_when(
+        rna_id_meta == "N" & !is.na(`Parth Found_RNA_ID`) ~ `Parth Found_RNA_ID`,
+        rna_id_meta == "N" ~ NA_character_,
+        TRUE ~ rna_id_meta
       )) %>%
-      filter(!is.na(rna_id)) %>%
-      select(atac_id_orig, rna_id) %>%
-      separate_longer_delim(rna_id, "/") %>%
-      mutate(rna_id = str_remove(rna_id, "Sample_")) %>%
-      mutate(atac_id = str_extract(atac_id_orig,
+      filter(!is.na(rna_id_meta)) %>%
+      select(atac_id_meta, rna_id_meta) %>%
+      separate_longer_delim(rna_id_meta, "/") %>%
+      mutate(rna_id = str_remove(str_remove(rna_id_meta, "^Sample_\\d+_"), "^\\d{1,2}_")) %>%
+      mutate(atac_id = str_extract(atac_id_meta,
         pattern = "([a-zA-Z0-9]+)",
         group = 1
       )) %>%
@@ -87,6 +87,9 @@ main <-
         rna_sample_id = rna_id,
         atac_sample_id = atac_id
       )
+
+    rna_counts_norm_long %>%
+      left_join(samples_mapped, relationship = "many-to-many")
 
     counts_join <- full_join(
       rna_counts_norm_long %>%
@@ -115,15 +118,16 @@ main <-
       summarize(n = n()) %>%
       filter(n > 10)
 
-    counts_join %>%
+    counts_present <- counts_join %>%
       mutate(
         atac_status = if_else(is.na(atac_count), "missing", "present"),
         rna_status = if_else(is.na(rna_count), "missing", "present")
       ) %>%
       group_by(atac_sample_id, rna_sample_id, atac_status, rna_status) %>%
-      summarize(n = n()) %>%
-      filter(atac_status == "present", rna_status == "present") %>%
-      write_tsv("assets/matched_IDs_present.tsv")
+      summarize(n = n())
+    # counts_present %>%
+    #     filter(atac_status == "present", rna_status == "present") %>%
+    #   write_tsv("assets/matched_IDs_present.tsv")
 
     counts_grp <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
