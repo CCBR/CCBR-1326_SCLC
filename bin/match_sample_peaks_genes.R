@@ -170,7 +170,8 @@ main <-
 args <- commandArgs(trailingOnly = TRUE)
 main(
   metadata_infile = args[1],
-  rna_counts_infile = args[2],
-  atac_counts_infile = args[3],
-  peak_gene_infile = args[4]
+  pdx_meta_infile = args[2],
+  rna_counts_infile = args[3],
+  atac_counts_infile = args[4],
+  peak_gene_infile = args[5]
 )
