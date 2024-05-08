@@ -101,7 +101,8 @@ main <-
         rna_sample_id = pdx_sample_id_verbose,
         rna_id = sample_id,
         atac_sample_id = atac_id_sample
-      )
+      ) %>%
+      filter(atac_id != "2705020")
     samples_mapped <- metadat_join %>%
       filter(!is.na(atac_id), !is.na(rna_id))
 
