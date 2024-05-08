@@ -27,6 +27,7 @@ r-plotly
 r-purrr
 r-RColorBrewer
 r-readr
+r-readxl
 r-rlang
 r-scales
 r-stringr

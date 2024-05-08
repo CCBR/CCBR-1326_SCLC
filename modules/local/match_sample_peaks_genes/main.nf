@@ -2,7 +2,7 @@ process MATCH_SAMPLES_PEAKS_GENES {
     """
     Match atac-seq and rna-seq samples and write to separate files per peak-gene pair
     """
-    container "nciccbr/sclc_r-quarto:v0.3.3"
+    container "nciccbr/sclc_r-quarto:v0.4.0"
 
     input:
         tuple path(metadata_infile), path(pdx_infile), path(rna_counts_infile), path(atac_counts_infile), path(peak_gene_infile)

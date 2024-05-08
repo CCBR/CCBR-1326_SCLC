@@ -13,7 +13,7 @@ main <-
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
            peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed") {
     # integrate RNA-seq with ATAC-seq
-    pdx_metadat <- read_tsv("assets/pdx_rank3_metadata.tsv") %>%
+    pdx_metadat <- read_tsv(pdx_meta_infile) %>%
       rename(sample_id_verbose = sample_id) %>%
       mutate(
         sample_id = str_extract(sample_id_verbose,
