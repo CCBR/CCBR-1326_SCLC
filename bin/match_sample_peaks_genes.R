@@ -141,9 +141,13 @@ main <-
       ) %>%
       group_by(atac_sample_id, rna_sample_id, atac_status, rna_status) %>%
       summarize(n = n())
-    # counts_present %>%
-    #     filter(atac_status == "present", rna_status == "present") %>%
-    #   write_tsv("assets/matched_IDs_present.tsv")
+    counts_present %>%
+      ungroup() %>%
+      filter(atac_status == "present", rna_status == "present") %>%
+      left_join(metadat_join) %>%
+      select(rna_sample_id, atac_sample_id, pdx_rank3) %>%
+      distinct() %>%
+      write_tsv("assets/matched_IDs_present.tsv")
 
     counts_grp <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
