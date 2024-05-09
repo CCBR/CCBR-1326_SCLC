@@ -121,7 +121,6 @@ main <-
         "atac_counts_norm",
         "atac_counts_norm_long",
         "metadat",
-        "metadat_join",
         "peak_gene_tss",
         "rna_counts_norm",
         "rna_counts_norm_long",
@@ -134,21 +133,6 @@ main <-
       group_by(gene_name, peak_coord) %>%
       summarize(n = n()) %>%
       filter(n > 10)
-
-    counts_present <- counts_join %>%
-      mutate(
-        atac_status = if_else(is.na(atac_count), "missing", "present"),
-        rna_status = if_else(is.na(rna_count), "missing", "present")
-      ) %>%
-      group_by(atac_sample_id, rna_sample_id, atac_status, rna_status) %>%
-      summarize(n = n())
-    counts_present %>%
-      ungroup() %>%
-      filter(atac_status == "present", rna_status == "present") %>%
-      left_join(metadat_join) %>%
-      select(rna_sample_id, atac_sample_id, pdx_rank3) %>%
-      distinct() %>%
-      write_tsv("assets/matched_IDs_present.tsv")
 
     counts_grp <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
