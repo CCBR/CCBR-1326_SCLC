@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+options(error = rlang::entrace)
 library(dplyr)
 library(glue)
 library(purrr)
@@ -106,6 +107,15 @@ main <-
     samples_mapped <- metadat_join %>%
       filter(!is.na(atac_id), !is.na(rna_id))
 
+    # free up memory before `counts_join`
+    rm(
+      list = c(
+        "atac_counts_norm",
+        "metadat",
+        "peak_gene_tss",
+        "rna_counts_norm",
+      )
+    )
     counts_join <- full_join(
       rna_counts_norm_long %>%
         rename(rna_id = rna_sample_id) %>%
@@ -115,14 +125,10 @@ main <-
         right_join(samples_mapped, relationship = "many-to-many"),
       relationship = "many-to-many"
     )
-    # free up memory
+    # free up memory after `counts_join`
     rm(
       list = c(
-        "atac_counts_norm",
         "atac_counts_norm_long",
-        "metadat",
-        "peak_gene_tss",
-        "rna_counts_norm",
         "rna_counts_norm_long",
         "samples_mapped"
       )
@@ -139,11 +145,16 @@ main <-
       right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
         by = c("gene_name", "peak_coord")
       ) %>%
-      select(-rna_sample_id) %>%
+      select(
+        -rna_sample_id,
+        rna_id_sample, rna_id, rna_count, atac_id, atac_count
+      ) %>%
       group_by(gene_name, peak_coord) %>%
       nest()
 
-    counts_grp %>%
+    head(counts_grp)
+
+    l <- counts_grp %>%
       pmap(\(gene_name, peak_coord, data) {
         filename <- glue("matched_{gene_name}_{peak_coord}.tsv")
         write_tsv(data, filename)
