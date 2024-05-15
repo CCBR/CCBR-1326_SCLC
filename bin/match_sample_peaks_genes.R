@@ -12,7 +12,8 @@ main <-
            pdx_meta_infile = "assets/pdx_rank3_metadata.tsv",
            rna_counts_infile = "data/rna_counts_normalized.csv",
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
-           peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed") {
+           peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed",
+           matched_outfile = "matched_genes_peaks.tsv") {
     # integrate RNA-seq with ATAC-seq
     pdx_metadat <- read_tsv(pdx_meta_infile) %>%
       rename(sample_id_verbose = sample_id) %>%
@@ -113,7 +114,7 @@ main <-
         "atac_counts_norm",
         "metadat",
         "peak_gene_tss",
-        "rna_counts_norm",
+        "rna_counts_norm"
       )
     )
     counts_join <- full_join(
@@ -140,25 +141,34 @@ main <-
       summarize(n = n()) %>%
       filter(n > 10)
 
-    counts_grp <- counts_join %>%
+    counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
       right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
         by = c("gene_name", "peak_coord")
       ) %>%
-      select(
-        -rna_sample_id,
-        rna_id_sample, rna_id, rna_count, atac_id, atac_count
-      ) %>%
-      group_by(gene_name, peak_coord) %>%
-      nest()
+      write_tsv(matched_outfile)
 
-    head(counts_grp)
+    # counts_grp <- counts_join %>%
+    #   filter(!is.na(atac_count), !is.na(rna_count)) %>%
+    #   right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
+    #     by = c("gene_name", "peak_coord")
+    #   ) %>%
+    #   select(
+    #     -rna_sample_id,
+    #     rna_id_sample, rna_id, rna_count, atac_id, atac_count
+    #   ) %>%
+    #   group_by(gene_name, peak_coord) %>%
+    #   nest()
 
-    l <- counts_grp %>%
-      pmap(\(gene_name, peak_coord, data) {
-        filename <- glue("matched_{gene_name}_{peak_coord}.tsv")
-        write_tsv(data, filename)
-      })
+    # head(counts_grp)
+
+    ## error: creates too many output files for nextflow to copy
+    ### /usr/bin/ls: Argument list too long
+    # l <- counts_grp %>%
+    #   pmap(\(gene_name, peak_coord, data) {
+    #     filename <- glue("matched_{gene_name}_{peak_coord}.tsv")
+    #     write_tsv(data, filename)
+    #   })
   }
 
 
