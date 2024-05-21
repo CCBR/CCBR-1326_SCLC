@@ -19,6 +19,7 @@ repos:
     rev: v2.2.4
     hooks:
       - id: codespell
+        args: ["--ignore-words-list=entrace"]
         # https://github.com/codespell-project/codespell/issues/1498
   # Python formatting
   - repo: https://github.com/psf/black

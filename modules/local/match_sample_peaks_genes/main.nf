@@ -10,7 +10,7 @@ process MATCH_SAMPLES_PEAKS_GENES {
         tuple path(metadata_infile), path(pdx_infile), path(rna_counts_infile), path(atac_counts_infile), path(peak_gene_infile)
 
     output:
-        path("matched_*.tsv")
+        path("matches/")
 
     script:
     """

@@ -141,34 +141,30 @@ main <-
       summarize(n = n()) %>%
       filter(n > 10)
 
-    counts_join %>%
+    counts_filt <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
       right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
         by = c("gene_name", "peak_coord")
       ) %>%
+      select(
+        -rna_sample_id,
+        rna_id_sample, rna_id, rna_count, atac_id, atac_count
+      )
+    counts_filt %>%
       write_tsv(matched_outfile)
 
-    # counts_grp <- counts_join %>%
-    #   filter(!is.na(atac_count), !is.na(rna_count)) %>%
-    #   right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
-    #     by = c("gene_name", "peak_coord")
-    #   ) %>%
-    #   select(
-    #     -rna_sample_id,
-    #     rna_id_sample, rna_id, rna_count, atac_id, atac_count
-    #   ) %>%
-    #   group_by(gene_name, peak_coord) %>%
-    #   nest()
+    counts_grp <- counts_filt %>%
+      group_by(gene_name, peak_coord) %>%
+      nest()
 
     # head(counts_grp)
 
-    ## error: creates too many output files for nextflow to copy
-    ### /usr/bin/ls: Argument list too long
-    # l <- counts_grp %>%
-    #   pmap(\(gene_name, peak_coord, data) {
-    #     filename <- glue("matched_{gene_name}_{peak_coord}.tsv")
-    #     write_tsv(data, filename)
-    #   })
+    dir.create("matches", showWarnings = FALSE)
+    l <- counts_grp %>%
+      pmap(\(gene_name, peak_coord, data) {
+        filename <- glue("matches/matched_{gene_name}_{peak_coord}.tsv")
+        write_tsv(data, filename)
+      })
   }
 
 

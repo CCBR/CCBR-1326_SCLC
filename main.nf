@@ -77,15 +77,15 @@ workflow {
                       file(params.atac_counts_norm, checkIfExists: true)
                      ]).collect().combine(ch_peaks_tss)
         | MATCH_SAMPLES_PEAKS_GENES
-    //     | flatten() // split list of files so correlate runs on each file
-    //     | CORRELATE_PAIR
-    //     | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
-    //     | FILTER_CORR_BED
+        | flatten() // split list of files so correlate runs on each file
+        | CORRELATE_PAIR
+        | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
+        | FILTER_CORR_BED
 
-    // BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
-    //     | NETWORK_OUTDEGREE
-    //     | map { meta, file -> file }
-    //     | collectFile(name: 'tf_outdegree_concat.tsv', storeDir: "${params.outdir}/network_outdegree_concat", keepHeader: true, skip: 1)
+    BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
+        | NETWORK_OUTDEGREE
+        | map { meta, file -> file }
+        | collectFile(name: 'tf_outdegree_concat.tsv', storeDir: "${params.outdir}/network_outdegree_concat", keepHeader: true, skip: 1)
 
 }
 
