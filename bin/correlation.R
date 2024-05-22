@@ -1,19 +1,20 @@
 #!/usr/bin/env Rscript
 library(dplyr)
+library(furrr)
+library(future)
 library(glue)
 library(purrr)
 library(readr)
 library(stringr)
 library(tidyr)
 
-main <- function(peak_gene_infile) {
+correlate <- function(peak_gene_infile) {
   dat <- read_tsv(peak_gene_infile)
   metadat <- str_match(peak_gene_infile, "matched_(?<gene>\\w+)_(?<peak>.*)\\.tsv")
   gene_name <- metadat[1, "gene"]
   peak_coord <- metadat[1, "peak"]
-  outfile <- str_replace(peak_gene_infile, "\\.tsv$", "_corr.tsv")
 
-  broom::tidy(cor.test(
+  corr_result <- broom::tidy(cor.test(
     dat$rna_count, # escape dollar signs for nextflow template
     dat$atac_count,
     method = "pearson",
@@ -22,9 +23,23 @@ main <- function(peak_gene_infile) {
     mutate(
       gene_name = gene_name,
       peak_coord = peak_coord
-    ) %>%
-    write_tsv(outfile)
+    )
+  return(corr_result)
+}
+
+parallel <- function(gene_name, input_files, num_cores = 12) {
+  message(glue("using {num_cores} cores for parallel processing"))
+  plan(multicore, workers = num_cores)
+  input_files %>%
+    str_split(",") %>%
+    furrr::future_map(correlate) %>%
+    bind_rows() %>%
+    write_tsv(glue("{gene_name}_corr.tsv"))
 }
 
 args <- commandArgs(trailingOnly = TRUE)
-main(args[1])
+parallel(
+  gene_name = args[1],
+  input_files = args[2],
+  num_cores = as.integer(args[3])
+)
