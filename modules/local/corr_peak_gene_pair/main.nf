@@ -4,7 +4,7 @@ process CORRELATE_PAIR {
     Correlate ATAC-seq peak counts near genes' TSSs with the genes' RNA-seq counts
     """
     container "nciccbr/sclc_r-quarto:v0.3.3"
-    cpus 12
+    cpus 8
     memory '20 G'
 
     input:
