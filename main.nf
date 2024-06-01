@@ -32,6 +32,7 @@ include { FILTER_CORR_BED           } from './modules/local/filter_corr_bed'
 
 
 workflow {
+    /*
     gtf = file(params.gtf, checkIfExists: true)
     pfm = file(params.pfm, checkIfExists: true)
     chrom_sizes = file(params.chrom_sizes, checkIfExists: true)
@@ -68,9 +69,9 @@ workflow {
         ).intersect
         | REFORMAT_BED_INTERSECT
         | map{ meta, bed -> bed }
-
+    */
     // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
-    ch_peaks_genes = Channel.fromPath('output/match_samples_peaks_genes/matches/*.tsv')
+    ch_peaks_genes = Channel.fromPath('output/match_samples_peaks_genes/matches/matched_*.tsv')
     // Channel.fromPath([file(params.metadata, checkIfExists: true),
     //                   file(params.pdx_meta, checkIfExists: true),
     //                   file(params.rna_counts_norm, checkIfExists: true),
@@ -82,13 +83,20 @@ workflow {
             // use groovy regex to extract gene and peak names from file
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
             (filename, gene, peak) = (file =~ /matched_([\d\w-]+)_([\d\w:-]+)\.tsv/)[0]
+            ( chr ) = (peak =~ /([\d\w]*):/)[0]
+            chr = assets/hg19.promoters.bed.gz
             [ gene, file ]
         }
         | groupTuple()
         | CORRELATE_PAIR
-        | flatten()
         | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
         | FILTER_CORR_BED
+
+    ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
+        | map { file ->
+            [ [id: file.getName().replaceAll(/_mpbs.fixed.filt.bed/, "")], file]
+        }
+    ch_peaks_genes = Channel.fromPath('output/filter_corr_bed/gene_peak_corr_filt.bed')
 
     BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
         | NETWORK_OUTDEGREE
