@@ -12,6 +12,7 @@ main <- function(input_tsv = "output/correlations/gene_peak_corr.tsv",
     separate_wider_delim(pos, delim = "-", names = c("start", "end")) %>%
     select(chr, start, end, gene_name) %>%
     mutate(score = ".", strand = ".") %>%
+    arrange(chr, start, end) %>%
     write_tsv(output_bed, col_names = FALSE)
 }
 

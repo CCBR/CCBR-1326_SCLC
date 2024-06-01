@@ -30,8 +30,10 @@ correlate <- function(peak_gene_infile) {
 parallel <- function(gene_name, input_files, num_cores = 12) {
   message(glue("using {num_cores} cores for parallel processing"))
   plan(multicore, workers = num_cores)
-  input_files %>%
+  tsv_files <- input_files %>%
     str_split(",") %>%
+    unlist()
+  tsv_files %>%
     furrr::future_map(correlate) %>%
     bind_rows() %>%
     write_tsv(glue("{gene_name}_corr.tsv"))
