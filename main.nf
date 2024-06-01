@@ -32,7 +32,7 @@ include { FILTER_CORR_BED           } from './modules/local/filter_corr_bed'
 
 
 workflow {
-    /*
+
     gtf = file(params.gtf, checkIfExists: true)
     pfm = file(params.pfm, checkIfExists: true)
     chrom_sizes = file(params.chrom_sizes, checkIfExists: true)
@@ -41,7 +41,7 @@ workflow {
         MATRIX_BED
 
     ch_cluster_map = Channel.fromPath(file(params.clusters, checkIfExists: true))
-
+    /*
     ch_bam = ch_cluster_map
         .splitCsv(header: true, sep: '\t')
         .map{ it ->
@@ -60,7 +60,7 @@ workflow {
     //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
     ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
-
+    */
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
     ch_peaks_tss = BEDTOOLS_INTERSECT_TSS(ch_consensus_bed.map{
@@ -69,16 +69,16 @@ workflow {
         ).intersect
         | REFORMAT_BED_INTERSECT
         | map{ meta, bed -> bed }
-    */
+
     // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
-    ch_peaks_genes = Channel.fromPath('output/match_samples_peaks_genes/matches/matched_*.tsv')
-    // Channel.fromPath([file(params.metadata, checkIfExists: true),
-    //                   file(params.pdx_meta, checkIfExists: true),
-    //                   file(params.rna_counts_norm, checkIfExists: true),
-    //                   file(params.atac_counts_norm, checkIfExists: true)
-    //                  ]).collect().combine(ch_peaks_tss)
-    //     | MATCH_SAMPLES_PEAKS_GENES
-        //| flatten() // split list of files so correlate runs on each file
+    //ch_peaks_genes = Channel.fromPath('output/match_samples_peaks_genes/matches/matched_*.tsv')
+    Channel.fromPath([file(params.metadata, checkIfExists: true),
+                      file(params.pdx_meta, checkIfExists: true),
+                      file(params.rna_counts_norm, checkIfExists: true),
+                      file(params.atac_counts_norm, checkIfExists: true)
+                     ]).collect().combine(ch_peaks_tss)
+        | MATCH_SAMPLES_PEAKS_GENES
+        | flatten() // split list of files so correlate runs on each file
         | map { file ->
             // use groovy regex to extract gene and peak names from file
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
