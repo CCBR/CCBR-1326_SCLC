@@ -84,7 +84,7 @@ workflow {
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
             (filename, gene, peak) = (file =~ /matched_([\d\w-]+)_([\d\w:-]+)\.tsv/)[0]
             ( chr ) = (peak =~ /([\d\w]*):/)[0]
-            chr = assets/hg19.promoters.bed.gz
+            chr = chr.replaceAll(/:/, "")
             [ gene, file ]
         }
         | groupTuple()
