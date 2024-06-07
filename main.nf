@@ -61,6 +61,12 @@ workflow {
 
     ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
     */
+
+    ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
+        | map { file ->
+            [ [id: file.getName().replaceAll(/_mpbs.fixed.filt.bed/, "")], file]
+        }
+
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
     ch_peaks_tss = BEDTOOLS_INTERSECT_TSS(ch_consensus_bed.map{
@@ -71,32 +77,25 @@ workflow {
         | map{ meta, bed -> bed }
 
     // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
-    //ch_peaks_genes = Channel.fromPath('output/match_samples_peaks_genes/matches/matched_*.tsv')
-    Channel.fromPath([file(params.metadata, checkIfExists: true),
-                      file(params.pdx_meta, checkIfExists: true),
-                      file(params.rna_counts_norm, checkIfExists: true),
-                      file(params.atac_counts_norm, checkIfExists: true)
-                     ]).collect().combine(ch_peaks_tss)
-        | MATCH_SAMPLES_PEAKS_GENES
+    ch_peaks_genes = Channel.fromPath('output_2/match_samples_peaks_genes/matches/matched_*.tsv')
+    // Channel.fromPath([file(params.metadata, checkIfExists: true),
+    //                   file(params.pdx_meta, checkIfExists: true),
+    //                   file(params.rna_counts_norm, checkIfExists: true),
+    //                   file(params.atac_counts_norm, checkIfExists: true)
+    //                  ]).collect().combine(ch_peaks_tss)
+    //     | MATCH_SAMPLES_PEAKS_GENES
         | flatten() // split list of files so correlate runs on each file
         | map { file ->
             // use groovy regex to extract gene and peak names from file
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
-            (filename, gene, peak) = (file =~ /matched_([\d\w-]+)_([\d\w:-]+)\.tsv/)[0]
-            ( chr ) = (peak =~ /([\d\w]*):/)[0]
-            chr = chr.replaceAll(/:/, "")
+            (filename, gene, chr, range) = (file =~ /matched_([\d\w-]+)_([\d\w]+):([\d-]+)\.tsv/)[0]
+            //(peak2, chr) = (peak =~ /([\d\w]*):/)[0]
             [ gene, file ]
         }
         | groupTuple()
         | CORRELATE_PAIR
         | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
         | FILTER_CORR_BED
-
-    ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
-        | map { file ->
-            [ [id: file.getName().replaceAll(/_mpbs.fixed.filt.bed/, "")], file]
-        }
-    ch_peaks_genes = Channel.fromPath('output/filter_corr_bed/gene_peak_corr_filt.bed')
 
     BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
         | NETWORK_OUTDEGREE
