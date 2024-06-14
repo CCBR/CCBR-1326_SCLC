@@ -96,7 +96,7 @@ expr_scores <- diff_dat %>%
 # it would regulate more genes in that subtype relative to other subtypes,
 # as demonstrated with a higher O_diff
 
-outdegree_dat <- read_tsv("output/network_outdegree_concat/tf_outdegree_concat.tsv") %>%
+outdegree_dat <- read_tsv("output_2/network_outdegree_concat/tf_outdegree_concat.tsv") %>%
   left_join(cluster_membership)
 
 outdegree_sums <- outdegree_dat %>%
