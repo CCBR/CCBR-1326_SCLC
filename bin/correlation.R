@@ -45,3 +45,9 @@ parallel(
   input_files = args[2],
   num_cores = as.integer(args[3])
 )
+# parallel(
+#   gene_name = 'MIEF1',
+#   input_files = 'matched_MIEF1_chr22:39893805-39895071.tsv,matched_MIEF1_chr22:39900282-39900340.tsv,matched_MIEF1_chr22:39897088-39898779.tsv,matched_MIEF1_chr22:39892405-39892628.tsv' %>%
+#     str_split(',') %>% unlist() %>% paste0('output_2/split_pairs/matches/', .) %>% str_c(collapse = ','),
+#   num_cores = 8
+#   )

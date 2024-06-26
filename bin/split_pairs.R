@@ -22,9 +22,11 @@ main <- function(infile = "output_2/peaks_genes_motifs/peaks_genes_motifs.tsv",
   nest_dat %>%
     future_pmap(\(TSS_gene_name, peak_coord, data) {
       filename <- glue("matches/matched_{TSS_gene_name}_{peak_coord}.tsv")
-      data %>%
-        mutate(TSS_gene_name = TSS_gene_name, peak_coord = peak_coord) %>%
-        write_tsv(filename)
+      if (nrow(data) >= 10) { # require peak-gene pair to exist in at least 10 samples
+        data %>%
+          mutate(TSS_gene_name = TSS_gene_name, peak_coord = peak_coord) %>%
+          write_tsv(filename)
+      }
     })
 }
 
