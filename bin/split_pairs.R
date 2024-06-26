@@ -18,8 +18,7 @@ main <- function(infile = "output_2/peaks_genes_motifs/peaks_genes_motifs.tsv",
   dir.create("matches", showWarnings = FALSE)
   nest_dat <- dat %>%
     group_by(peak_coord, TSS_gene_name) %>%
-    nest() %>%
-    head(n = 20) # TODO delete later -- this is for debugging with a smaller dataset
+    nest()
   nest_dat %>%
     future_pmap(\(TSS_gene_name, peak_coord, data) {
       filename <- glue("matches/matched_{TSS_gene_name}_{peak_coord}.tsv")
