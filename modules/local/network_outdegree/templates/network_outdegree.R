@@ -2,18 +2,17 @@
 library(dplyr)
 library(readr)
 
-main <- function(infile = "${infile}", outfile = "${outfile}") {
-  tf_gene_links <- read_tsv(infile, col_names = c(
-    "TF_chrom", "TF_start", "TF_end", "TF_name", "TF_score", "TF_strand",
-    "peak_chrom", "peak_start", "peak_end", "peak_gene_name", "peak_score", "peak_strand",
-    "n_bases_overlap"
-  ))
-  tf_gene_links %>%
-    select(TF_name, peak_gene_name) %>%
+main <- function(samples_infile = "${matched_samples}",
+                 corr_infile = "${correlations}",
+                 outfile = "${outfile}") {
+  read_tsv(samples_infile) %>%
+    right_join(read_tsv(corr_infile)) %>%
+    separate_longer_delim(TF_list, ",") %>%
+    rename(TF_name = TF_list) %>%
+    select(TF_name, TSS_gene_name, atac_sample_id) %>%
     distinct() %>%
     group_by(TF_name) %>%
     summarize(outdegree = n()) %>%
-    mutate(sample_id = "${meta.id}") %>%
     write_tsv(outfile)
 }
 main()

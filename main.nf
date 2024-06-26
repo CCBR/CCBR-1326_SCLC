@@ -33,7 +33,7 @@ include { MATCH_ATAC_RNA_IDS        } from './modules/local/match_atac_rna_ids'
 include { MATCH_SAMPLE_MOTIFS       } from './modules/local/match_sample_motifs'
 include { SPLIT_PAIRS               } from './modules/local/split_pairs'
 include { CORRELATE_PAIR            } from './modules/local/corr_peak_gene_pair'
-include { FILTER_CORR_BED           } from './modules/local/filter_corr_bed'
+include { FILTER_CORR_TSV           } from './modules/local/filter_corr_tsv'
 
 
 workflow {
@@ -99,11 +99,16 @@ workflow {
     ch_peaks_motifs.combine(MATCH_ATAC_RNA_IDS.out)
         | MATCH_SAMPLE_MOTIFS
         | collectFile(name: 'peaks_genes_motifs.tsv', storeDir: "${params.outdir}/peaks_genes_motifs/", keepHeader: true, skip: 1)
+        | set{ ch_match_sample_motifs }
+
+    ch_match_sample_motifs
         | SPLIT_PAIRS // split to one file per atac-rna match with all samples
-    SPLIT_PAIRS.out
-        | combine( Channel.fromPath("output_2/split_pairs/matches/*.tsv") ) // required because there are too many files for nxf output to glob
+        | set{ ch_peak_gene_pairs }
+
+    ch_peak_gene_pairs
+        | view
+        | combine( Channel.fromPath("output_2/split_pairs/matches/*.tsv") ) // necessary because there are too many files for nxf output to glob in the process output directive
         | map{ dir, file -> file }
-        //| flatten()  // split list of files so correlate runs on each file
         | map { file ->
             // use groovy regex to extract gene and peak names from file
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
@@ -113,8 +118,12 @@ workflow {
         | groupTuple()
         | CORRELATE_PAIR
         | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
+        | FILTER_CORR_TSV
+        | set{ ch_corr }
 
-    // TODO calculate outdegree
+    // TODO calculate TF outdegree
+    ch_match_sample_motifs.combine(ch_corr) | view
+        | NETWORK_OUTDEGREE
     // TODO calculate TF ranks
 
 
