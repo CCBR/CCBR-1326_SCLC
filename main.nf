@@ -24,9 +24,14 @@ include { CLUSTERPROFILER           } from './modules/local/clusterProfiler'
 include { EXTRACT_TSS               } from './modules/local/extract_tss'
 include { STRIP_TAB                 } from './modules/local/strip_tab'
 include { FILTER_FOOTPRINTS         } from './modules/local/filter_footprints'
-include { REFORMAT_BED_INTERSECT    } from './modules/local/reformat_bed_intersect'
+include { REFORMAT_BED_INTERSECT_TSS;
+          REFORMAT_BED_INTERSECT_MOTIF
+                                    } from './modules/local/reformat_bed_intersect'
 include { NETWORK_OUTDEGREE         } from './modules/local/network_outdegree'
 include { MATCH_SAMPLES_PEAKS_GENES } from './modules/local/match_sample_peaks_genes'
+include { MATCH_ATAC_RNA_IDS        } from './modules/local/match_atac_rna_ids'
+include { MATCH_SAMPLE_MOTIFS       } from './modules/local/match_sample_motifs'
+include { SPLIT_PAIRS               } from './modules/local/split_pairs'
 include { CORRELATE_PAIR            } from './modules/local/corr_peak_gene_pair'
 include { FILTER_CORR_BED           } from './modules/local/filter_corr_bed'
 
@@ -69,39 +74,75 @@ workflow {
 
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
+    // intersect consensus peaks with regions around gene TSSs
+    // TODO use data/raw_tmm_fpkm_batch_corrected_PDX_only.csv instead of consensus infile?
     ch_peaks_tss = BEDTOOLS_INTERSECT_TSS(ch_consensus_bed.map{
                 bed -> [[id: 'consensus'], bed]
             }.combine(ch_tss_bed)
         ).intersect
-        | REFORMAT_BED_INTERSECT
+        | REFORMAT_BED_INTERSECT_TSS // keep peak coords, toss TSS region coords
         | map{ meta, bed -> bed }
+    // intersect HINT ATAC footprints with peaks near gene TSSs
+    ch_peaks_motifs = BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_tss)).intersect
+        //Channel.fromPath("output_2/reformat_bed_intersect_motif/*.tsv")
+        // | first // TODO just get one sample for testing
+        | REFORMAT_BED_INTERSECT_MOTIF // keep peak coords, toss motif coords
+        | map{ meta, tsv -> tsv }
 
-    // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
-    ch_peaks_genes = Channel.fromPath('output_2/match_samples_peaks_genes/matches/matched_*.tsv')
-    // Channel.fromPath([file(params.metadata, checkIfExists: true),
-    //                   file(params.pdx_meta, checkIfExists: true),
-    //                   file(params.rna_counts_norm, checkIfExists: true),
-    //                   file(params.atac_counts_norm, checkIfExists: true)
-    //                  ]).collect().combine(ch_peaks_tss)
-    //     | MATCH_SAMPLES_PEAKS_GENES
-        | flatten() // split list of files so correlate runs on each file
+    Channel.fromPath([file(params.metadata, checkIfExists: true),
+                        file(params.pdx_meta, checkIfExists: true),
+                        file(params.rna_counts_norm, checkIfExists: true),
+                        file(params.atac_counts_norm, checkIfExists: true)
+                        ]).collect()
+        | MATCH_ATAC_RNA_IDS
+
+    ch_peaks_motifs.combine(MATCH_ATAC_RNA_IDS.out)
+        | MATCH_SAMPLE_MOTIFS
+        | collectFile(name: 'peaks_genes_motifs.tsv', storeDir: "${params.outdir}/peaks_genes_motifs/", keepHeader: true, skip: 1)
+        | SPLIT_PAIRS // split to one file per atac-rna match with all samples
+    SPLIT_PAIRS.out
+        | combine( Channel.fromPath("output_2/split_pairs/matches/*.tsv") ) // required because there are too many files for nxf output to glob
+        | map{ dir, file -> file }
+        //| flatten()  // split list of files so correlate runs on each file
         | map { file ->
             // use groovy regex to extract gene and peak names from file
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
             (filename, gene, chr, range) = (file =~ /matched_([\d\w-]+)_([\d\w]+):([\d-]+)\.tsv/)[0]
-            //(peak2, chr) = (peak =~ /([\d\w]*):/)[0]
             [ gene, file ]
         }
         | groupTuple()
         | CORRELATE_PAIR
         | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
-        | FILTER_CORR_BED
 
-    BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_genes)).intersect
+    // TODO calculate outdegree
+    // TODO calculate TF ranks
+
+
+    // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
+    // ch_peaks_genes = //Channel.fromPath('output_2/match_samples_peaks_genes/matches/matched_*.tsv')
+    //     Channel.fromPath([file(params.metadata, checkIfExists: true),
+    //                     file(params.pdx_meta, checkIfExists: true),
+    //                     file(params.rna_counts_norm, checkIfExists: true),
+    //                     file(params.atac_counts_norm, checkIfExists: true)
+    //                     ]).collect().combine(ch_peaks_motifs)
+    //     | MATCH_SAMPLES_PEAKS_GENES
+        //| flatten() // split list of files so correlate runs on each file
+    /*    | map { file ->
+            // use groovy regex to extract gene and peak names from file
+            //  https://nextflow.io/docs/edge/script.html#capturing-groups
+            (filename, gene, chr, range) = (file =~ /matched_([\d\w-]+)_([\d\w]+):([\d-]+)\.tsv/)[0]
+            [ gene, file ]
+        }
+        | groupTuple()
+        | CORRELATE_PAIR
+        | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
+        //| FILTER_CORR_BED
+
+    ch_peaks_genes
         | NETWORK_OUTDEGREE
         | map { meta, file -> file }
         | collectFile(name: 'tf_outdegree_concat.tsv', storeDir: "${params.outdir}/network_outdegree_concat", keepHeader: true, skip: 1)
-
+    */
 }
 
 workflow RGT {

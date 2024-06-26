@@ -12,7 +12,7 @@ main <-
            pdx_meta_infile = "assets/pdx_rank3_metadata.tsv",
            rna_counts_infile = "data/rna_counts_normalized.csv",
            atac_counts_infile = "data/raw_tmm_fpkm_batch_corrected_PDX_only.csv",
-           peak_gene_infile = "output/reformat_bed_intersect/intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.bed",
+           peak_gene_infile = "output_2/reformat_bed_intersect_motif/intersect.304944_S0_L001_mpbs.fixed.filt.intersect.raw_tmm_fpkm_batch_corrected_PDX_only.gencode.v19.annotation.TSS_padded.reformat.reformat_motif.tsv",
            matched_outfile = "matched_genes_peaks.tsv") {
     # integrate RNA-seq with ATAC-seq
     pdx_metadat <- read_tsv(pdx_meta_infile) %>%
@@ -35,10 +35,8 @@ main <-
     peak_gene_tss <-
       read_tsv(
         peak_gene_infile,
-        col_names = c("chr", "start", "end", "gene_name", "score", "strand")
       ) %>%
-      mutate(peak_coord = glue("{chr}:{start}-{end}")) %>%
-      select(gene_name, peak_coord)
+      select(gene_name, peak_coord, atac_id_sample)
 
     atac_counts_norm_long <- atac_counts_norm %>%
       rename(peak_coord = Coordinate) %>%
@@ -139,11 +137,11 @@ main <-
       select(-rna_sample_id, ends_with("_orig")) %>%
       group_by(gene_name, peak_coord) %>%
       summarize(n = n()) %>%
-      filter(n > 10)
+      filter(n > 5)
 
     counts_filt <- counts_join %>%
       filter(!is.na(atac_count), !is.na(rna_count)) %>%
-      right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least 10 samples
+      right_join(counts_sum %>% select(-n), # only keep peak-gene pairs that are in at least N samples
         by = c("gene_name", "peak_coord")
       ) %>%
       select(
@@ -163,7 +161,10 @@ main <-
     l <- counts_grp %>%
       pmap(\(gene_name, peak_coord, data) {
         filename <- glue("matches/matched_{gene_name}_{peak_coord}.tsv")
-        write_tsv(data, filename)
+        data %>%
+          select(rna_id_sample, atac_id_sample, pdx_rank3, rna_count, atac_count) %>%
+          mutate(gene_name = gene_name, peak_coord = peak_coord) %>%
+          write_tsv(filename)
       })
   }
 

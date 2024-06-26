@@ -11,17 +11,17 @@ library(tidyr)
 correlate <- function(peak_gene_infile) {
   dat <- read_tsv(peak_gene_infile)
   metadat <- str_match(peak_gene_infile, "matched_(?<gene>\\w+)_(?<peak>.*)\\.tsv")
-  gene_name <- metadat[1, "gene"]
+  TSS_gene_name <- metadat[1, "gene"]
   peak_coord <- metadat[1, "peak"]
 
   corr_result <- broom::tidy(cor.test(
-    dat$rna_count, # escape dollar signs for nextflow template
+    dat$rna_count,
     dat$atac_count,
     method = "pearson",
     adjust = "fdr"
   )) %>%
     mutate(
-      gene_name = gene_name,
+      TSS_gene_name = TSS_gene_name,
       peak_coord = peak_coord
     )
   return(corr_result)
