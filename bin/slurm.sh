@@ -11,4 +11,4 @@
 module load nextflow
 NXF_SINGULARITY_CACHEDIR=/data/CCBR_Pipeliner/SIFS
 
-nextflow run main.nf -profile biowulf,slurm -resume
+nextflow run main.nf -profile slurm -resume
