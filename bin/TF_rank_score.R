@@ -96,7 +96,7 @@ expr_scores <- diff_dat %>%
 # it would regulate more genes in that subtype relative to other subtypes,
 # as demonstrated with a higher O_diff
 
-outdegree_dat <- read_tsv("output_2/network_outdegree_concat/tf_outdegree_concat.tsv") %>%
+outdegree_dat <- read_tsv("output_2/network_outdegree/TF_outdegree.tsv") %>%
   left_join(cluster_membership)
 
 outdegree_sums <- outdegree_dat %>%
@@ -172,7 +172,7 @@ top_tfs <- tf_rank_dat %>%
     accessibility = A_diff
   )
 
-write_csv(top_tfs, "assets/top_TFs_HINT.csv")
+write_csv(top_tfs, "output_2/top_TFs_HINT.csv")
 
 min_max <- list(
   min = ~ min(.x, na.rm = TRUE),
@@ -251,4 +251,4 @@ tf_rank_dat %>%
   geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
   facet_wrap(~name, scales = "free")
 
-write_tsv(tf_rank_dat, file = "data/tf_rank_HINT.tsv")
+write_tsv(tf_rank_dat, file = "output_2/tf_rank_HINT.tsv")
