@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 library(dplyr)
 library(readr)
+library(tidyr)
 
 main <- function(samples_infile = "${matched_samples}",
                  corr_infile = "${correlations}",

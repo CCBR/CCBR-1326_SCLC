@@ -106,7 +106,6 @@ workflow {
         | set{ ch_peak_gene_pairs }
 
     ch_peak_gene_pairs
-        | view
         | combine( Channel.fromPath("output_2/split_pairs/matches/*.tsv") ) // necessary because there are too many files for nxf output to glob in the process output directive
         | map{ dir, file -> file }
         | map { file ->
@@ -122,7 +121,7 @@ workflow {
         | set{ ch_corr }
 
     // TODO calculate TF outdegree
-    ch_match_sample_motifs.combine(ch_corr) | view
+    ch_match_sample_motifs.combine(ch_corr)
         | NETWORK_OUTDEGREE
     // TODO calculate TF ranks
 

@@ -7,10 +7,10 @@ process NETWORK_OUTDEGREE {
     memory '32 GB'
 
     input:
-    tuple val(meta), path(matched_samples), path(correlations)
+    tuple path(matched_samples), path(correlations)
 
     output:
-    tuple val(meta), path("TF_outdegree.tsv")
+    path("TF_outdegree.tsv")
 
     script:
     outfile = "TF_outdegree.tsv"
