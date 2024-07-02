@@ -110,6 +110,7 @@ main <- function(
   # as demonstrated with a higher O_diff
 
   outdegree_dat <- read_tsv(infile_outdegree) %>%
+    filter(!is.na(sample_id)) %>%
     left_join(cluster_membership)
 
   outdegree_sums <- outdegree_dat %>%
@@ -219,7 +220,11 @@ main <- function(
   # debugging distribution of outdegrees
   outdegree_dat %>%
     ggplot(aes(outdegree, fill = cluster_id)) +
-    geom_histogram(alpha = 0.5, position = position_identity(), bins = 20)
+    geom_histogram(alpha = 0.5, position = position_identity(), bins = 20) +
+    xlim(
+      outdegree_dat %>% pull(outdegree) %>% min(),
+      outdegree_dat %>% pull(outdegree) %>% max()
+    )
 
   outdegree_dat_norm %>%
     ggplot(aes(log2_outdegree_norm, fill = cluster_id)) +
