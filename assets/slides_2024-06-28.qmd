@@ -110,7 +110,7 @@ top_tfs_hint <- read_csv(params$top_tfs_hint)
 ```
 
 
-## TF distributions {visibility="hidden"}
+## TF distributions
 
 ```{r tf_rank}
 tf_rank_hint <- read_tsv(params$tf_ranks_hint)
