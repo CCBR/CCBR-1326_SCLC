@@ -1,0 +1,116 @@
+---
+title: Integrated ATAC-seq and RNA-seq analysis for SCLC
+author: CCBR
+date: 2024-07-05
+format: 
+    html:
+        theme: [default]
+        embed-resources: true
+        code-fold: true
+params:
+  atac_rna_tsv:   "output/rowbind_logfc/concat.atac_rna.tsv"
+  atac_rna_venn:  "output/join_atac_rna/joined_atac_rna.log"
+  set_counts_tsv: "output/rowbind_count/concat.set_counts.tsv"
+  clusterprofiler_rdata: "output/clusterprofiler/clusterProfiler.RData"
+  chromvar_rdata:   "output/chromvar/chromVAR.results.RData"
+  top_tfs_hint: 'output_2/calc_rank_score/top_TFs_HINT.csv'
+  tf_ranks_hint: 'output_2/calc_rank_score/tf_rank_HINT.tsv'
+---
+
+```{r setup}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(broom)
+library(ggVennDiagram)
+library(glue)
+library(knitr)
+library(patchwork)
+library(plotly)
+library(rlang)
+library(scales)
+library(tidyverse)
+theme_sovacool <- ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      panel.spacing = unit(1, 'lines'),
+      plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      strip.background = element_blank(),
+      strip.placement = 'outside'
+    )
+theme_set(theme_sovacool)
+set.seed(20240326)
+
+
+# q: What is the definition of standard error?
+```
+
+
+## Top TFs
+
+```{r TFs_HINT}
+#| message: false
+#| fig-width: 10
+#| fig-height: 6.5
+plot_heatmap_sqr <- function(dat = top_tfs_hint,
+                             value_column = A_diff,
+                             cluster = 'c1') {
+    dat %>%
+        filter(cluster_id == cluster) %>%
+        mutate(gene_name = fct_reorder(as_factor(gene_name), TF_rank)) %>%
+        ggplot(aes(x = gene_name, y = 1, # y = diff,
+                   fill = {{ value_column }})) +
+        geom_tile() +
+        {
+            if (cluster == 'c1') {
+                labs(y = quo_name(enquo(value_column)), x = "")
+            } else {
+                labs(y = "", x = "")
+            }
+        } +
+        theme(
+            axis.text.x = element_text(
+                angle = 60,
+                vjust = 1,
+                hjust = 1
+            ),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(),
+        )
+}
+
+plot_heatmap_col <- function(top_tfs_hint = top_tfs_hint,
+                             cluster = 'c1', show_legend = FALSE) {
+    ((
+        plot_heatmap_sqr(top_tfs_hint, outdegree, cluster) +
+            colorspace::scale_fill_continuous_diverging(palette = 'Blue-Red') +
+            theme(axis.text.x = element_blank()) +
+            labs(title = cluster)
+    ) /
+        (
+            plot_heatmap_sqr(top_tfs_hint, expression, cluster) +
+                colorspace::scale_fill_continuous_diverging(palette = 'Green-Orange') +
+                theme(axis.text.x = element_blank(), strip.text = element_blank())
+        ) /
+        (
+            plot_heatmap_sqr(top_tfs_hint, accessibility, cluster) +
+                colorspace::scale_fill_continuous_diverging(palette = 'Purple-Green')  +
+                theme(strip.text = element_blank(), axis.text.x = element_blank())
+        ) /
+        (
+            plot_heatmap_sqr(top_tfs_hint, TF_rank, cluster) +
+                scale_fill_distiller(palette = 'Greys') +
+                theme(strip.text = element_blank(),
+                      legend.position = 'none')
+        ) & {if (isFALSE(show_legend)) theme(legend.position = 'none')} 
+    )  + 
+        plot_layout(heights = c(1,1,1,0.33))
+}
+
+top_tfs_hint <- read_csv(params$top_tfs_hint)
+
+plot_heatmap_col(top_tfs_hint, cluster = 'c1') |
+    plot_heatmap_col(top_tfs_hint, cluster = 'c2') |
+    plot_heatmap_col(top_tfs_hint, cluster = 'c3', show_legend = TRUE)
+```
