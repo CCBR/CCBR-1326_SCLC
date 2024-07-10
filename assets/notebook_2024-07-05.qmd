@@ -42,8 +42,6 @@ theme_sovacool <- ggplot2::theme_bw() +
 theme_set(theme_sovacool)
 set.seed(20240326)
 
-
-# q: What is the definition of standard error?
 ```
 
 
@@ -114,3 +112,81 @@ plot_heatmap_col(top_tfs_hint, cluster = 'c1') |
     plot_heatmap_col(top_tfs_hint, cluster = 'c2') |
     plot_heatmap_col(top_tfs_hint, cluster = 'c3', show_legend = TRUE)
 ```
+
+
+## check whether ASCL1 & NEUROD1 show up in C3
+
+```{r c3-check}
+all_tfs <- read_tsv(params$tf_ranks_hint)
+all_tfs %>% filter(cluster_id == 'c3', str_detect(gene_name,'ASCL') | str_detect(gene_name,'NEURO')) 
+```
+
+```{r c3-tracing}
+# get TSS gene names that contained ASCL1 or NEUROD1 motifs identified in peaks
+motif_dat <- read_tsv('output_2/peaks_genes_motifs/peaks_genes_motifs.tsv')
+c3_dat <- motif_dat %>% 
+    filter(cluster == 'cluster3', str_detect(TF_list,'ASCL1') | str_detect(TF_list,'NEUROD1')) %>% 
+    separate_longer_delim(TF_list, delim = ',') %>% 
+    rename(TF_name = TF_list) %>% 
+    filter(TF_name == 'ASCL1' | TF_name == 'NEUROD1')
+tss_genes <- c3_dat %>% select(TSS_gene_name, peak_coord) %>% distinct()
+
+# these genes were correlated
+corr_dat <- read_tsv('output_2/correlations/gene_peak_corr.tsv')
+head(corr_dat %>% left_join(tss_genes))
+
+# and the correlations pass the FDR filter
+corr_dat_filt <- read_tsv('output_2/filter_corr_tsv/gene_peak_corr_filt.tsv')
+corr_dat_filt %>% left_join(tss_genes)
+
+# they show up in network outdegree data
+outdegree_dat <- read_tsv('output_2/network_outdegree/TF_outdegree.tsv')
+outdegree_dat %>% filter(TF_name %in% c('ASCL1', 'NEUROD1'))
+
+# they're in the log2FC RNAseq data
+datasheet <- "assets/datasheet.csv"
+diff_dat <- read_csv(datasheet) %>%
+  mutate(cluster_id = glue('c{cluster}')) %>%
+  pmap(\(cluster_id, rna, atac, cluster) {
+      read_tsv(rna) %>%
+          #rename(gene_name = `...1`) %>% # object not found error?!
+          mutate(cluster_id = cluster_id)
+  }) %>%
+  bind_rows()
+colnames(diff_dat)[1] <- 'gene_name'
+diff_dat %>% filter(cluster_id == 'c3', gene_name %in% c('ASCL1', 'NEUROD1'))
+
+# ! neither show up in the chromvar data
+infile_chromvar <- "output/chromvar/chromVAR.results.tsv"
+chromvar_dat <- read_tsv(infile_chromvar)
+chromvar_dat %>% filter(str_detect(motif, 'ASCL1') | str_detect(motif, 'NEUROD1'))
+
+# chromvar uses JASPAR2016 (386 motifs), while RGT HINT uses JASPAR2020 (746 motifs)
+library(chromvar)
+?getJasparMotifs
+motifs <- chromvar::getJasparMotifs()
+length(motifs)
+```
+
+```{r chromvar-trace}
+# adapted from https://github.com/GreenleafLab/chromVAR/blob/0f27fcc8463d537d770f164a55f949701beb6add/R/motifs.R
+getJasparMotifs_ccbr <- function(species = "Homo sapiens", 
+                                 collection = "CORE", 
+                                 jaspar_db = JASPAR2016::JASPAR2016,
+                                 ...) {
+  opts <- list()
+  opts["species"] <- species
+  opts["collection"] <- collection
+  opts <- c(opts, list(...))
+  out <- TFBSTools::getMatrixSet(jaspar_db, opts)
+  if (!isTRUE(all.equal(TFBSTools::name(out), names(out)))) 
+    names(out) <- paste(names(out), TFBSTools::name(out), sep = "_")
+  return(out)
+}
+motifs_2016 <- getJasparMotifs_ccbr()
+length(motifs_2016)
+motifs_2020 <- getJasparMotifs_ccbr(jaspar_db = JASPAR2020::JASPAR2020)
+length(motifs_2020)
+names(motifs_2020) %>% Filter(\(x) str_detect(x, "ASCL1") | str_detect(x, 'NEUROD1'), .)
+```
+
