@@ -43,6 +43,10 @@ process BEDTOOLS_INTERSECT_FULL {
     tag { meta.id }
     container 'nciccbr/ccbr_ubuntu_base_20.04:v6'
 
+    cpus 1
+    memory '10 GB'
+    time '1h'
+
     input:
     tuple val(meta), path(bed_A), path(bed_B)
 
