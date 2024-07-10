@@ -3,7 +3,7 @@ process CHROMVAR_SUBSET {
     memory '16 GB'
     time '24 h'
 
-    container "nciccbr/sclc_r-quarto:v0.2.1"
+    container "nciccbr/sclc_r-quarto:v0.4.1"
 
     input:
         tuple path(consensus_bed), path(cluster_map), val(cluster_id)

@@ -55,15 +55,15 @@ workflow {
             [ [ id: it.sampleName, cluster: it.clusterName ], bam, bai ]
         }
 
-    MOTIF2GENE_MAPPING(gtf, pfm)
+    //MOTIF2GENE_MAPPING(gtf, pfm)
 
     bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
 
     // chromvar on all samples
     CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
-    CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
-
+    //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
+    /*
     // ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
     ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
         | map { file ->
@@ -122,7 +122,7 @@ workflow {
     ch_match_sample_motifs.combine(ch_corr)
         | NETWORK_OUTDEGREE
     // TODO calculate TF ranks manually in bin/TF_rank_score.R
-
+    */
 }
 
 workflow RGT {

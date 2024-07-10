@@ -73,7 +73,23 @@ bground <- getBackgroundPeaks(object = fragment_counts)
 # counts_filtered <- filterSamples(example_counts, min_depth = 1500,
 #                                  min_in_peaks = 0.15, shiny = FALSE)
 # counts_filtered <- filterPeaks(counts_filtered, non_overlapping = TRUE)
-motifs <- getJasparMotifs()
+# adapted from https://github.com/GreenleafLab/chromVAR/blob/0f27fcc8463d537d770f164a55f949701beb6add/R/motifs.R
+getJasparMotifs_ccbr <- function(species = "Homo sapiens",
+                                 collection = "CORE",
+                                 jaspar_db = JASPAR2016::JASPAR2016,
+                                 ...) {
+  opts <- list()
+  opts["species"] <- species
+  opts["collection"] <- collection
+  opts <- c(opts, list(...))
+  out <- TFBSTools::getMatrixSet(jaspar_db, opts)
+  if (!isTRUE(all.equal(TFBSTools::name(out), names(out)))) {
+    names(out) <- paste(names(out), TFBSTools::name(out), sep = "_")
+  }
+  return(out)
+}
+motifs <- getJasparMotifs_ccbr(jaspar_db = JASPAR2020:JASPAR2020)
+
 
 # find motifs in ROI
 motif_ix <- matchMotifs(motifs, fragment_counts,
