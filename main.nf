@@ -46,7 +46,7 @@ workflow {
         MATRIX_BED
 
     ch_cluster_map = Channel.fromPath(file(params.clusters, checkIfExists: true))
-    /*
+
     ch_bam = ch_cluster_map
         .splitCsv(header: true, sep: '\t')
         .map{ it ->
@@ -60,13 +60,11 @@ workflow {
     bam_list = ch_bam.map{meta, bam, bai -> bam}.collect()
 
     // chromvar on all samples
-    //CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
+    CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
-    //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
+    CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
 
-    ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
-    */
-
+    // ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
     ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
         | map { file ->
             [ [id: file.getName().replaceAll(/_mpbs.fixed.filt.bed/, "")], file]
@@ -120,37 +118,11 @@ workflow {
         | FILTER_CORR_TSV
         | set{ ch_corr }
 
-    // TODO calculate TF outdegree
+    // calculate TF outdegree
     ch_match_sample_motifs.combine(ch_corr)
         | NETWORK_OUTDEGREE
-    // TODO calculate TF ranks
+    // TODO calculate TF ranks manually in bin/TF_rank_score.R
 
-
-    // nextflow is rerunnning match_samples_peaks_genes for no reason, so let's circumvent it
-    // ch_peaks_genes = //Channel.fromPath('output_2/match_samples_peaks_genes/matches/matched_*.tsv')
-    //     Channel.fromPath([file(params.metadata, checkIfExists: true),
-    //                     file(params.pdx_meta, checkIfExists: true),
-    //                     file(params.rna_counts_norm, checkIfExists: true),
-    //                     file(params.atac_counts_norm, checkIfExists: true)
-    //                     ]).collect().combine(ch_peaks_motifs)
-    //     | MATCH_SAMPLES_PEAKS_GENES
-        //| flatten() // split list of files so correlate runs on each file
-    /*    | map { file ->
-            // use groovy regex to extract gene and peak names from file
-            //  https://nextflow.io/docs/edge/script.html#capturing-groups
-            (filename, gene, chr, range) = (file =~ /matched_([\d\w-]+)_([\d\w]+):([\d-]+)\.tsv/)[0]
-            [ gene, file ]
-        }
-        | groupTuple()
-        | CORRELATE_PAIR
-        | collectFile(name: 'gene_peak_corr.tsv', storeDir: "${params.outdir}/correlations/", keepHeader: true, skip: 1)
-        //| FILTER_CORR_BED
-
-    ch_peaks_genes
-        | NETWORK_OUTDEGREE
-        | map { meta, file -> file }
-        | collectFile(name: 'tf_outdegree_concat.tsv', storeDir: "${params.outdir}/network_outdegree_concat", keepHeader: true, skip: 1)
-    */
 }
 
 workflow RGT {
