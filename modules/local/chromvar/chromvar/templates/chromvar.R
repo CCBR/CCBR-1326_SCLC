@@ -74,7 +74,7 @@ bground <- getBackgroundPeaks(object = fragment_counts)
 # adapted from https://github.com/GreenleafLab/chromVAR/blob/0f27fcc8463d537d770f164a55f949701beb6add/R/motifs.R
 getJasparMotifs_ccbr <- function(species = "Homo sapiens",
                                  collection = "CORE",
-                                 jaspar_db = JASPAR2016::JASPAR2016,
+                                 jaspar_db = JASPAR2020::JASPAR2020,
                                  ...) {
   opts <- list()
   opts["species"] <- species
@@ -86,7 +86,7 @@ getJasparMotifs_ccbr <- function(species = "Homo sapiens",
   }
   return(out)
 }
-motifs <- getJasparMotifs_ccbr(jaspar_db = JASPAR2020:JASPAR2020)
+motifs <- getJasparMotifs_ccbr(jaspar_db = JASPAR2020::JASPAR2020)
 
 # find motifs in ROI
 motif_ix <- matchMotifs(motifs, fragment_counts,
