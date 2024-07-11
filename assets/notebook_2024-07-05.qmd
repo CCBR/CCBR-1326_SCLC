@@ -168,6 +168,7 @@ motifs <- chromvar::getJasparMotifs()
 length(motifs)
 ```
 
+
 ```{r chromvar-trace}
 # adapted from https://github.com/GreenleafLab/chromVAR/blob/0f27fcc8463d537d770f164a55f949701beb6add/R/motifs.R
 getJasparMotifs_ccbr <- function(species = "Homo sapiens", 

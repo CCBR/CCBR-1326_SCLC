@@ -12,7 +12,7 @@ library(tidyr)
 main <- function(
     datasheet = "assets/datasheet.csv",
     infile_clusters = "assets/cluster_membership.tsv",
-    infile_chromvar = "output/chromvar/chromVAR.results.tsv",
+    infile_chromvar = "output_2/chromvar/chromVAR.results.tsv",
     infile_outdegree = "output_2/network_outdegree/TF_outdegree.tsv",
     outfile_top_TFs = "output_2/calc_rank_score/top_TFs_HINT.csv",
     outfile_tf_ranks = "output_2/calc_rank_score/tf_rank_HINT.tsv") {
@@ -107,8 +107,8 @@ main <- function(
   expr_scores <- diff_dat %>%
     select(gene_name, log2FoldChange, pvalue, cluster_id) %>%
     mutate(
-      minus_log10_pvalue = -log10(pvalue_rna),
-      E_diff = minus_log10_pvalue * log2FoldChange_rna / abs(log2FoldChange_rna)
+      minus_log10_pvalue = -log10(pvalue),
+      E_diff = minus_log10_pvalue * log2FoldChange / abs(log2FoldChange)
     ) %>%
     select(gene_name, cluster_id, E_diff)
 
@@ -282,10 +282,10 @@ main <- function(
 }
 
 # args <- commandArgs(trailingOnly = TRUE)
-# main()
+main()
 datasheet <- "assets/datasheet.csv"
 infile_clusters <- "assets/cluster_membership.tsv"
-infile_chromvar <- "output/chromvar/chromVAR.results.tsv"
+infile_chromvar <- "output_2/chromvar/chromVAR.results.tsv"
 infile_outdegree <- "output_2/network_outdegree/TF_outdegree.tsv"
 outfile_top_TFs <- "output_2/calc_rank_score/top_TFs_HINT.csv"
 outfile_tf_ranks <- "output_2/calc_rank_score/tf_rank_HINT.tsv"
