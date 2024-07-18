@@ -207,6 +207,8 @@ tf_ranks_clusters <- dat_joined %>%
 tf_ranks_clusters %>% filter(TF_name == 'ASCL1' | TF_name == 'NEUROD1') %>% 
     kable()
 
+tf_ranks_clusters %>% write_csv('output_2/calc_rank_score/tf_rank_within_clusters.csv')
+
 tf_ranks_clusters %>% 
     filter(TF_rank <= 25) %>% 
     rename(outdegree = O_score,
