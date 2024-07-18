@@ -42,6 +42,8 @@ set.seed(20240326)
 
 ## Top TFs distinguishing clusters
 
+Using the methods from Fig. 3 of Tang _et al._
+
 ```{r TFs_HINT}
 #| message: false
 #| fig-width: 10
