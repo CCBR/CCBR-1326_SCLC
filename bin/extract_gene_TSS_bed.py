@@ -42,7 +42,8 @@ def extract_gene_tss(gtf_file):
                     yield seqname, tss, strand, attr_dict["gene_name"]
 
 
-def main(gtf_filename, chrom_sizes_filename, bed_filename, padding=5000):
+def main(gtf_filename, chrom_sizes_filename, bed_filename, padding=500000):
+    padding = int(padding)
     with open(chrom_sizes_filename, "r") as infile:
         chrom_sizes = {line.split()[0]: int(line.split()[1]) for line in infile}
     with open(gtf_filename, "r") as gtf_file:

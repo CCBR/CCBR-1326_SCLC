@@ -73,7 +73,6 @@ workflow {
     ch_tss_bed = EXTRACT_TSS(gtf, chrom_sizes).bed
 
     // intersect consensus peaks with regions around gene TSSs
-    // TODO use data/raw_tmm_fpkm_batch_corrected_PDX_only.csv instead of consensus infile?
     ch_peaks_tss = BEDTOOLS_INTERSECT_TSS(ch_consensus_bed.map{
                 bed -> [[id: 'consensus'], bed]
             }.combine(ch_tss_bed)
@@ -83,7 +82,7 @@ workflow {
     // intersect HINT ATAC footprints with peaks near gene TSSs
     ch_peaks_motifs = BEDTOOLS_INTERSECT_MOTIF(ch_footprints.combine(ch_peaks_tss)).intersect
         //Channel.fromPath("output_2/reformat_bed_intersect_motif/*.tsv")
-        // | first // TODO just get one sample for testing
+        // | first // just get one sample for testing
         | REFORMAT_BED_INTERSECT_MOTIF // keep peak coords, toss motif coords
         | map{ meta, tsv -> tsv }
 
@@ -104,7 +103,7 @@ workflow {
         | set{ ch_peak_gene_pairs }
 
     ch_peak_gene_pairs
-        | combine( Channel.fromPath("output_2/split_pairs/matches/*.tsv") ) // necessary because there are too many files for nxf output to glob in the process output directive
+        | combine( Channel.fromPath("output_3/split_pairs/matches/*.tsv") ) // necessary because there are too many files for nxf output to glob in the process output directive
         | map{ dir, file -> file }
         | map { file ->
             // use groovy regex to extract gene and peak names from file
@@ -122,7 +121,7 @@ workflow {
     ch_match_sample_motifs.combine(ch_corr)
         | NETWORK_OUTDEGREE
     // TODO calculate TF ranks manually in bin/TF_rank_score.R
-    */
+
 }
 
 workflow RGT {

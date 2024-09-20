@@ -16,6 +16,6 @@ process EXTRACT_TSS {
     script:
     bed = "${gtf.baseName}.TSS_padded.bed"
     """
-    extract_gene_TSS_bed.py ${gtf} ${chrom_sizes} ${bed}
+    extract_gene_TSS_bed.py ${gtf} ${chrom_sizes} ${bed} 500000
     """
 }
