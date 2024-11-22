@@ -1,0 +1,57 @@
+---
+title: What proportion of genes have correlated atac & rnaseq expression?
+author: CCBR
+date: 2024-11-22
+format: 
+    html:
+        theme: [default]
+        embed-resources: true
+        code-fold: true
+params:
+  rnaseq_raw: "data/RNA_new_df_updated_final_new.tsv"
+  rnaseq_norm: 'data/rna_counts_normalized.csv'
+  atacseq_norm: 'data/raw_tmm_fpkm_batch_corrected_PDX_only.csv'
+  peaks_genes_motifs: 'output_2/peaks_genes_motifs/peaks_genes_motifs.tsv'
+  filter_corr_tsv: 'output_2/filter_corr_tsv/gene_peak_corr_filt.tsv'
+---
+
+```{r setup}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(glue)
+library(knitr)
+library(scales)
+library(tidyverse)
+theme_sovacool <- ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      panel.spacing = unit(1, 'lines'),
+      plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      strip.background = element_blank(),
+      strip.placement = 'outside'
+    )
+theme_set(theme_sovacool)
+set.seed(20240326)
+```
+
+```{r data}
+#| message: false
+dat_atacseq_norm <- read_csv(params$atacseq_norm)
+n_peaks_atac <- dat_atacseq_norm %>% pull(Coordinate) %>% unique() %>% length()
+
+dat_rnaseq_raw <- read_tsv(params$rnaseq_raw)
+n_genes_rnaseq <- nrow(dat_rnaseq_raw)
+
+dat_motifs <- read_tsv(params$peaks_genes_motifs)
+n_genes_motifs <- dat_motifs %>% pull(TSS_gene_name) %>% unique() %>% length()
+
+dat_corr_filt <- read_tsv(params$filter_corr_tsv)
+n_genes_corr_atac <- dat_corr_filt %>% pull(TSS_gene_name) %>% unique() %>% length()
+frac_genes_corr_atac <- n_genes_corr_atac / n_genes_rnaseq
+```
+
+- Genes in RNA-seq data: `r n_genes_rnaseq`
+- Genes with ATAC-seq peak containing TF motif near TSS: `r n_genes_motifs`
+- Genes with RNA-seq expression correlated to ATAC-seq peak: `r n_genes_corr_atac` (`r n_genes_corr_atac` / `r n_genes_rnaseq` = `r round(frac_genes_corr_atac, 2)`)
