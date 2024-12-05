@@ -9,6 +9,7 @@ format:
         code-fold: true
 params:
   tf_rank_filename: "output_2/calc_rank_score/tf_rank_HINT.tsv"
+  top_n: 25
 ---
 
 
@@ -31,32 +32,54 @@ theme_sovacool <- ggplot2::theme_bw() +
       panel.spacing = unit(1, 'lines'),
       plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
       strip.background = element_blank(),
-      strip.placement = 'outside'
+      strip.placement = 'outside',
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.minor.y = element_blank()
     )
 theme_set(theme_sovacool)
 set.seed(20241205)
 
-dat <- read_tsv(here(params$tf_rank_filename))
+dat <- read_tsv(here(params$tf_rank_filename)) %>% 
+    filter(TF_rank <= params$top_n) %>% 
+    pivot_longer(
+        c(rank_A_diff, rank_O_diff, rank_E_diff, TF_rank),
+        names_to = 'metric',
+        values_to = 'rank'
+    ) %>%
+    mutate(
+        metric = case_when(
+            metric == 'rank_A_diff' ~ 'Accessibility',
+            metric == 'rank_E_diff' ~ 'Expression',
+            metric == 'rank_O_diff' ~ 'Outdegree',
+            metric == 'TF_rank' ~ 'Overall TF rank',
+            TRUE ~ NA_character_
+        ) %>% fct_relevel(
+            c('Outdegree', 'Expression', 'Accessibility', 'Overall TF rank')
+        )
+    ) 
+max_rank <- dat %>% pull(rank) %>% max()
 ```
 
-```{r plot_col}
+```{r plot_rank_patchwork}
 #| message: false
-#| fig-width: 10
-#| fig-height: 6.5
-top_c1 <- dat %>% filter(cluster_id == 'c1', TF_rank <= 25) 
-dat %>% filter(TF_rank <= 25) %>% 
-    mutate(gene_name = fct_reorder(gene_name, desc(TF_rank))) %>% 
-    pivot_longer(c(rank_A_diff, rank_O_diff, rank_E_diff, TF_rank), 
-                 names_to = 'metric', values_to = 'rank') %>% 
-    mutate(metric = case_when(
-        metric == 'rank_A_diff' ~ 'Accessibility',
-        metric == 'rank_E_diff' ~ 'Expression',
-        metric == 'rank_O_diff' ~ 'Outdegree',
-        metric == 'TF_rank' ~ 'Overall TF rank',
-        TRUE ~ NA_character_
-    ) %>% fct_relevel(c('Outdegree','Expression','Accessibility','Overall TF rank'))) %>% 
-    ggplot(aes(x = rank, y = gene_name, fill = metric)) + 
-    geom_col() +
-    facet_grid(metric ~ cluster_id, scales = 'free_y')
+#| fig-width: 9
+#| fig-height: 10.5
+
+plot_cluster_col <- function(dat, cluster) {
+    dat_cluster <- dat %>% filter(cluster_id == cluster)
+    genes_order <- dat_cluster %>% filter(metric == 'Overall TF rank') %>% arrange(desc(rank)) %>% pull(gene_name)
+    dat_cluster %>%
+        mutate(gene_name = factor(gene_name, levels = genes_order)) %>%
+        ggplot(aes(x = rank, y = gene_name, fill = metric)) +
+        geom_col() +
+        facet_wrap( ~ metric, ncol = 1, strip.position = 'right') +
+        xlim(0,max_rank) +
+        labs(title = cluster, x = '', y = '') +
+        {if (cluster != 'c3') theme(strip.text = element_blank())} +
+        theme(legend.position = 'none')
+}
+wrap_plots(lapply(c('c1','c2','c3'), function(x) plot_cluster_col(dat, x)))
+
 ```
 
