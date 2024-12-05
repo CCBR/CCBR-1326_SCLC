@@ -1,0 +1,62 @@
+---
+title: Alternative TF rank visualizations
+author: CCBR
+date: 2024-12-05
+format: 
+    html:
+        theme: [default]
+        embed-resources: true
+        code-fold: true
+params:
+  tf_rank_filename: "output_2/calc_rank_score/tf_rank_HINT.tsv"
+---
+
+
+```{r setup}
+#| message: false
+#| warning: false
+library(here)
+library(broom)
+library(glue)
+library(knitr)
+library(patchwork)
+library(plotly)
+library(rlang)
+library(scales)
+library(tidyverse)
+theme_sovacool <- ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      panel.spacing = unit(1, 'lines'),
+      plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+      strip.background = element_blank(),
+      strip.placement = 'outside'
+    )
+theme_set(theme_sovacool)
+set.seed(20241205)
+
+dat <- read_tsv(here(params$tf_rank_filename))
+```
+
+```{r plot_col}
+#| message: false
+#| fig-width: 10
+#| fig-height: 6.5
+top_c1 <- dat %>% filter(cluster_id == 'c1', TF_rank <= 25) 
+dat %>% filter(TF_rank <= 25) %>% 
+    mutate(gene_name = fct_reorder(gene_name, desc(TF_rank))) %>% 
+    pivot_longer(c(rank_A_diff, rank_O_diff, rank_E_diff, TF_rank), 
+                 names_to = 'metric', values_to = 'rank') %>% 
+    mutate(metric = case_when(
+        metric == 'rank_A_diff' ~ 'Accessibility',
+        metric == 'rank_E_diff' ~ 'Expression',
+        metric == 'rank_O_diff' ~ 'Outdegree',
+        metric == 'TF_rank' ~ 'Overall TF rank',
+        TRUE ~ NA_character_
+    ) %>% fct_relevel(c('Outdegree','Expression','Accessibility','Overall TF rank'))) %>% 
+    ggplot(aes(x = rank, y = gene_name, fill = metric)) + 
+    geom_col() +
+    facet_grid(metric ~ cluster_id, scales = 'free_y')
+```
+
