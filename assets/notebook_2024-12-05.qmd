@@ -10,6 +10,7 @@ format:
 params:
   tf_rank_filename: "output_2/calc_rank_score/tf_rank_HINT.tsv"
   top_n: 25
+  tf_within_cluster: 'output_2/calc_rank_score/tf_rank_within_clusters.csv'
 ---
 
 
@@ -40,10 +41,11 @@ theme_sovacool <- ggplot2::theme_bw() +
 theme_set(theme_sovacool)
 set.seed(20241205)
 
-dat <- read_tsv(here(params$tf_rank_filename)) %>% 
+clean_dat <- function(dat) {
+ dat %>% 
     filter(TF_rank <= params$top_n) %>% 
     pivot_longer(
-        c(rank_A_diff, rank_O_diff, rank_E_diff, TF_rank),
+        c(rank_A_diff, rank_O_diff, rank_E_diff),# TF_rank),
         names_to = 'metric',
         values_to = 'rank'
     ) %>%
@@ -52,34 +54,58 @@ dat <- read_tsv(here(params$tf_rank_filename)) %>%
             metric == 'rank_A_diff' ~ 'Accessibility',
             metric == 'rank_E_diff' ~ 'Expression',
             metric == 'rank_O_diff' ~ 'Outdegree',
-            metric == 'TF_rank' ~ 'Overall TF rank',
+            #metric == 'TF_rank' ~ 'Overall TF rank',
             TRUE ~ NA_character_
         ) %>% fct_relevel(
-            c('Outdegree', 'Expression', 'Accessibility', 'Overall TF rank')
+            c('Outdegree', 'Expression', 'Accessibility')#, 'Overall TF rank')
         )
     ) 
-max_rank <- dat %>% pull(rank) %>% max()
+}
+dat <- read_tsv(here(params$tf_rank_filename)) %>% clean_dat()
+
+dat_within_cluster <- read_csv(here(params$tf_within_cluster)) %>% 
+    rename(rank_A_diff = rank_A_score,
+           rank_E_diff = rank_E_score,
+           rank_O_diff = rank_O_score,
+           gene_name = TF_name)
+n_TFs <- dat_within_cluster %>% pull(gene_name) %>% unique() %>% length()
+dat_within_cluster <- dat_within_cluster %>% clean_dat()
 ```
 
-```{r plot_rank_patchwork}
+## Top TFs distinguishing clusters
+
+Using original methods from Fig. 3 of Tang _et al._
+
+Smaller bar indicates lower rank, which indicates higher outdegree, expression, 
+or accessibility score relative to other TFs within the cluster.
+Smaller bar = more important TF.
+
+```{r plot_rank_stacked_orig}
 #| message: false
-#| fig-width: 9
-#| fig-height: 10.5
 
 plot_cluster_col <- function(dat, cluster) {
     dat_cluster <- dat %>% filter(cluster_id == cluster)
-    genes_order <- dat_cluster %>% filter(metric == 'Overall TF rank') %>% arrange(desc(rank)) %>% pull(gene_name)
+    genes_order <- dat_cluster %>% arrange(desc(TF_rank)) %>% pull(gene_name) %>% unique()
     dat_cluster %>%
         mutate(gene_name = factor(gene_name, levels = genes_order)) %>%
         ggplot(aes(x = rank, y = gene_name, fill = metric)) +
         geom_col() +
-        facet_wrap( ~ metric, ncol = 1, strip.position = 'right') +
-        xlim(0,max_rank) +
+        scale_fill_brewer(palette = 'Dark2') +
+        guides(fill = guide_legend(title = 'Rank'), reverse = TRUE) +
         labs(title = cluster, x = '', y = '') +
-        {if (cluster != 'c3') theme(strip.text = element_blank())} +
-        theme(legend.position = 'none')
+        { if (cluster != 'c2') theme(legend.position = 'none') else theme(legend.position = 'bottom') }
 }
 wrap_plots(lapply(c('c1','c2','c3'), function(x) plot_cluster_col(dat, x)))
-
 ```
 
+
+## Top TFs within clusters
+
+```{r plot_rank_stacked_within-cluster}
+#| message: false
+c('c1', 'c2', 'c3') %>%
+    lapply(function(cluster) {
+        plot_cluster_col(dat_within_cluster, cluster)
+    }) %>%
+    wrap_plots()
+```
