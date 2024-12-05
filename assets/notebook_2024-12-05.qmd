@@ -77,7 +77,7 @@ dat_within_cluster <- dat_within_cluster %>% clean_dat()
 Using original methods from Fig. 3 of Tang _et al._
 
 Smaller bar indicates lower rank, which indicates higher outdegree, expression, 
-or accessibility score relative to other TFs within the cluster.
+or accessibility score relative to other TFs in distinguishing clusters.
 Smaller bar = more important TF.
 
 ```{r plot_rank_stacked_orig}
@@ -100,6 +100,12 @@ wrap_plots(lapply(c('c1','c2','c3'), function(x) plot_cluster_col(dat, x)))
 
 
 ## Top TFs within clusters
+
+Ranking TFs within clusters rather than comparing across clusters.
+
+Smaller bar indicates lower rank, which indicates higher outdegree, expression, 
+or accessibility score relative to other TFs.
+Smaller bar = more important TF.
 
 ```{r plot_rank_stacked_within-cluster}
 #| message: false
