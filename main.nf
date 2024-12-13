@@ -50,8 +50,8 @@ workflow {
     ch_bam = ch_cluster_map
         .splitCsv(header: true, sep: '\t')
         .map{ it ->
-            bam = file(it.bam, checkIfExists: true)
-            bai = file("${bam}.bai", checkIfExists: true)
+            def bam = file(it.bam, checkIfExists: true)
+            def bai = file("${bam}.bai", checkIfExists: true)
             [ [ id: it.sampleName, cluster: it.clusterName ], bam, bai ]
         }
 
@@ -63,7 +63,7 @@ workflow {
     CHROMVAR(ch_consensus_bed, ch_cluster_map, bam_list)
     // chromvar on each cluster individually
     //CHROMVAR_SUBSET(ch_consensus_bed.combine(ch_cluster_map).combine(Channel.of('c1', 'c2', 'c3')), bam_list)
-    /*
+
     // ch_footprints = RGT(ch_consensus_bed, ch_bam).footprints | FILTER_FOOTPRINTS
     ch_footprints = Channel.fromPath('output/filter_footprints/*.bed')
         | map { file ->
@@ -108,7 +108,7 @@ workflow {
         | map { file ->
             // use groovy regex to extract gene and peak names from file
             //  https://nextflow.io/docs/edge/script.html#capturing-groups
-            (filename, gene, chr, range) = (file =~ /matched_([\d\w-]+)_([\d\w]+):([\d-]+)\.tsv/)[0]
+            def (filename, gene, chr, range) = (file =~ /matched_([\d\w-]+)_([\d\w]+):([\d-]+)\.tsv/)[0]
             [ gene, file ]
         }
         | groupTuple()
