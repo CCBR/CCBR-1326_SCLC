@@ -92,9 +92,11 @@ atac_dat <- "data/rank3.pdx.cluster1.DEseq2.tsv data/rank3.pdx.cluster2.DEseq2.t
       rename(peak_coord = `...1`)
   }) %>%
   bind_rows() %>%
-  select(peak_coord, log2FoldChange, padj, cluster) %>%
+  select(peak_coord, log2FoldChange, pvalue, padj, cluster) %>%
+  mutate(gsea_rank_atac = sign(log2FoldChange) * -log10(pvalue)) %>%
   rename(
     log2fc_atac = log2FoldChange,
+    pvalue_atac = pvalue,
     padj_atac = padj
   )
 
@@ -109,9 +111,11 @@ rna_dat <- "data/rank3.pdx.cluster1_RNA.DEseq2.edit.tsv data/rank3.pdx.cluster3_
       )
   }) %>%
   bind_rows() %>%
-  select(gene_name, log2FoldChange, padj, cluster) %>%
+  select(gene_name, log2FoldChange, pvalue, padj, cluster) %>%
+  mutate(gsea_rank_rna = sign(log2FoldChange) * -log10(pvalue)) %>%
   rename(
     log2fc_rna = log2FoldChange,
+    pvalue_rna = pvalue,
     padj_rna = padj,
     TSS_gene_name = gene_name
   )
@@ -133,12 +137,12 @@ dat <- corr_dat %>%
 msig_cats <- c("C3 TFT:GTRD", "C3 TFT:TFT_Legacy")
 # GSEA on RNA log2fc
 msig_cats %>%
-  map(\(msig) run_gsea(msig, dat = rna_dat %>% filter(abs(log2fc_rna) >= 1), log2fc_col = log2fc_rna))
+  map(\(msig) run_gsea(msig, dat = rna_dat, log2fc_col = gsea_rank_rna))
 # GSEA on ATAC log2fc
 msig_cats %>%
   map(\(msig) run_gsea(msig,
     dat = atac_dat %>%
       left_join(motif_dat) %>%
-      filter(!is.na(TSS_gene_name), !is.na(log2fc_atac), abs(log2fc_atac) >= 1),
-    log2fc_col = log2fc_atac
+      filter(!is.na(TSS_gene_name), !is.na(log2fc_atac)),
+    log2fc_col = gsea_rank_atac
   ))
