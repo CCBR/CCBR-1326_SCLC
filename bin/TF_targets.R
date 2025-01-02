@@ -133,12 +133,12 @@ dat <- corr_dat %>%
 msig_cats <- c("C3 TFT:GTRD", "C3 TFT:TFT_Legacy")
 # GSEA on RNA log2fc
 msig_cats %>%
-  map(\(msig) run_gsea(msig, dat = rna_dat, log2fc_col = log2fc_rna))
+  map(\(msig) run_gsea(msig, dat = rna_dat %>% filter(abs(log2fc_rna) >= 1), log2fc_col = log2fc_rna))
 # GSEA on ATAC log2fc
 msig_cats %>%
   map(\(msig) run_gsea(msig,
     dat = atac_dat %>%
       left_join(motif_dat) %>%
-      filter(!is.na(TSS_gene_name), !is.na(log2fc_atac)),
+      filter(!is.na(TSS_gene_name), !is.na(log2fc_atac), abs(log2fc_atac) >= 1),
     log2fc_col = log2fc_atac
   ))
