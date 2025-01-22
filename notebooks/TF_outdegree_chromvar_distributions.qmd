@@ -1,0 +1,90 @@
+---
+title: "TF outdegree & accessibility distributions across samples"
+author: "CCBR"
+date: "2025-01-16"
+format:
+    html:
+        theme: [default]
+        embed-resources: true
+        code-fold: true
+---
+```{r setup, include=FALSE}
+```
+```{r deps, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(readr)
+library(rlang)
+library(stringr)
+library(tidyr)
+
+theme_sovacool <- ggplot2::theme_bw() +
+ggplot2::theme(
+  legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+  legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+  panel.spacing = unit(1, "lines"),
+  plot.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+  strip.background = element_blank(),
+  strip.placement = "outside"
+)
+theme_set(theme_sovacool)
+```
+```{r data, message=FALSE}
+TFs <- "POU4F1
+POU2F3
+IRF8
+ASCL1
+NEUROD1
+AP1
+FOSL1
+FRA1
+JUN
+SOX2" %>% str_split("\n") %>% unlist()
+dat <- read_tsv("output_2/chromvar/chromVAR.results.tsv") %>%
+    pivot_longer(ends_with("sorted.dedup.bam"),
+                 names_to = "sample_id", values_to = "chromvar_zscore") %>%
+    mutate(sample_id = str_remove(sample_id, "[._]sorted.dedup.bam")) %>%
+    rename(TF_name = name) %>%
+    #filter(TF_name %in% TFs) %>%
+    left_join(read_tsv("output_2/network_outdegree/TF_outdegree.tsv"),
+              by = c('TF_name', 'sample_id')) %>%
+    left_join(read_tsv("assets/cluster_membership.tsv") %>%
+                  rename(sample_id = sampleName, cluster = clusterName),
+              by = 'sample_id') %>%
+    select(motif, TF_name, sample_id, cluster, chromvar_zscore, outdegree)
+```
+### missing data
+
+some TFs aren't in the chromvar results
+
+```{r missing_motifs}
+ setdiff(TFs, dat %>% pull(TF_name) %>% unique())
+```
+
+AP1 and FRA1 are not in the motif data.
+
+However, FRA1 may actually refer to [FOSL1](https://www.ncbi.nlm.nih.gov/gene?Db=gene&Cmd=ShowDetailView&TermToSearch=8061).
+
+Some samples x TFs are missing outdegree scores; likely they did not pass the correlation threshold
+
+```{r missing_scores}
+dat %>% filter(TF_name %in% TFs) %>% filter(is.na(outdegree)) %>% select(sample_id, TF_name) %>%
+    distinct() %>% arrange(desc(TF_name), desc(sample_id)) %>%
+    knitr::kable()
+```
+
+### TF outdegree vs chromatin accessilibity across samples
+
+```{r plot_outdegree_chromvar_dist, fig.dim=c(12, 12)}
+dat %>%
+    filter(TF_name %in% TFs) %>%
+    ggplot(aes(x = outdegree, y = chromvar_zscore, color = cluster, label = sample_id)) +
+    geom_point(alpha = 0.7) +
+    #ggrepel::geom_text_repel(box.padding = 0.3, max.overlaps = Inf, show.legend = FALSE) +
+    facet_wrap(~TF_name, scales = "free",ncol=2) +
+    scale_color_brewer(palette = 'Dark2') +
+    labs(x = "TF outdegree", y = "Chromatin accessibility z-score") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
