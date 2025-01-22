@@ -2,7 +2,7 @@
 title: What proportion of genes have correlated atac & rnaseq expression?
 author: CCBR
 date: 2024-11-22
-format: 
+format:
     html:
         theme: [default]
         embed-resources: true

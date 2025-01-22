@@ -2,7 +2,7 @@
 title: Alternative TF rank visualizations
 author: CCBR
 date: 2024-12-05
-format: 
+format:
     html:
         theme: [default]
         embed-resources: true
@@ -42,8 +42,8 @@ theme_set(theme_sovacool)
 set.seed(20241205)
 
 clean_dat <- function(dat) {
- dat %>% 
-    filter(TF_rank <= params$top_n) %>% 
+ dat %>%
+    filter(TF_rank <= params$top_n) %>%
     pivot_longer(
         c(rank_A_diff, rank_O_diff, rank_E_diff),# TF_rank),
         names_to = 'metric',
@@ -59,11 +59,11 @@ clean_dat <- function(dat) {
         ) %>% fct_relevel(
             c('Outdegree', 'Expression', 'Accessibility')#, 'Overall TF rank')
         )
-    ) 
+    )
 }
 dat <- read_tsv(here(params$tf_rank_filename)) %>% clean_dat()
 
-dat_within_cluster <- read_csv(here(params$tf_within_cluster)) %>% 
+dat_within_cluster <- read_csv(here(params$tf_within_cluster)) %>%
     rename(rank_A_diff = rank_A_score,
            rank_E_diff = rank_E_score,
            rank_O_diff = rank_O_score,
@@ -76,7 +76,7 @@ dat_within_cluster <- dat_within_cluster %>% clean_dat()
 
 Using original methods from Fig. 3 of Tang _et al._
 
-Smaller bar indicates lower rank, which indicates higher outdegree, expression, 
+Smaller bar indicates lower rank, which indicates higher outdegree, expression,
 or accessibility score relative to other TFs in distinguishing clusters.
 Smaller bar = more important TF.
 
@@ -103,7 +103,7 @@ wrap_plots(lapply(c('c1','c2','c3'), function(x) plot_cluster_col(dat, x)))
 
 Ranking TFs within clusters rather than comparing across clusters.
 
-Smaller bar indicates lower rank, which indicates higher outdegree, expression, 
+Smaller bar indicates lower rank, which indicates higher outdegree, expression,
 or accessibility score relative to other TFs.
 Smaller bar = more important TF.
 

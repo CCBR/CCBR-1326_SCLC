@@ -2,7 +2,7 @@
 title: Integrated ATAC-seq and RNA-seq analysis for SCLC
 author: CCBR
 date: 2024-04-23
-format: 
+format:
     revealjs:
         theme: [default, custom.scss]
         embed-resources: true

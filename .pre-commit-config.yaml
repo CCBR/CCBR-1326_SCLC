@@ -4,6 +4,7 @@ exclude: |
   (?x)(
       ^assets/|
       ^docs/.*.html|
+      ^notebooks/.*.html|
       ^_extensions/
    )
 repos:

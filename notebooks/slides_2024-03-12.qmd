@@ -1,25 +1,17 @@
 ---
-title: 'integrated differential ATACseq and RNAseq'
-date: today
-engine: knitr
-execute:
-    message: false
-    warning: false
+title: Integrated ATAC-seq and RNA-seq for SCLC
+author: CCBR
+date: 2024-03-12
 format:
-    html:
-        self-contained: true
-        toc: true
-        code-fold: true
+    revealjs:
+        theme: [default, custom.scss]
+        embed-resources: true
 params:
-  cpus: 1
-  artifact_dir: NULL
-  input_dir: NULL
-  meta: NULL
   atac_rna_tsv:   "output/rowbind_logfc/concat.atac_rna.tsv"
   atac_rna_venn:  "output/join_atac_rna/joined_atac_rna.log"
   set_counts_tsv: "output/rowbind_count/concat.set_counts.tsv"
-  atac_rna_signif_genes_csv: 'atac_rna_signif_genes.csv'
 ---
+
 
 ```{r setup}
 #| message: false
@@ -48,24 +40,17 @@ theme_sovacool <- ggplot2::theme_bw() +
 theme_set(theme_sovacool)
 ```
 
+## Differential ATACseq & RNAseq
 
-## Differential ATAC & RNAseq 
-
-### Overlapping genes
-
-Differential ATACseq peaks were intersected with known gene promoter regions.
-Peaks that overlap promoter regions were kept and joined with the corresponding
-differential gene expression data from RNAseq.
-
-
+<!--
 Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
-
+-->
 
 ```{r plot_venn}
 #| message: false
-v <- read_delim(params$atac_rna_venn, delim = ':\t', 
-           col_names = c('set','genes')) %>% 
-    pivot_wider(names_from = set, values_from = genes) %>% 
+v <- read_delim(params$atac_rna_venn, delim = ':\t',
+           col_names = c('set','genes')) %>%
+    pivot_wider(names_from = set, values_from = genes) %>%
     unlist()
 
 venn_dat <- list(
@@ -73,19 +58,23 @@ venn_dat <- list(
     ATACseq = identity_transformer(glue("{v[['RNAseq']]-v[['joined']]}:{v[['RNAseq']]+v[['ATACseq']]+v[['joined']]}"))
 )
 
-Venn(venn_dat) %>% 
-    process_data(shape_id = "201") %>% 
+Venn(venn_dat) %>%
+    process_data(shape_id = "201") %>%
     plot_venn() +
     scale_fill_distiller(palette = 'YlGnBu', direction = 1) +
     theme(legend.position = 'none')
 
 ```
 
+ATACseq peaks in known promoter regions intersected with differential genes from RNAseq.
 
+
+## Peaks in genes & genes in peaks
+<!--
 Inspired by Fig. 3B-C from <https://www.science.org/doi/10.1126/science.abe1505#F3>
-
-```{r plot_histogram}
-overlap_counts <- read_tsv(params$set_counts_tsv) 
+-->
+```{r peaks_in_genes}
+overlap_counts <- read_tsv(params$set_counts_tsv)
 
 plot_hist <- function(dat) {
     dat %>%
@@ -97,50 +86,53 @@ plot_hist <- function(dat) {
 }
 
 
-overlap_counts %>% 
+overlap_counts %>%
     plot_hist() +
     scale_y_continuous(labels = label_comma())
 
-overlap_counts %>% 
-    plot_hist() +
-    scale_y_log10(labels = label_log(digits = 2))
+#overlap_counts %>% plot_hist() + scale_y_log10(labels = label_log(digits = 2))
+```
 
+## Peaks in genes & genes in peaks
+
+```{r peaks_in_genes_filt}
 overlap_counts %>%
-    filter(count > 0) %>% 
+    filter(count > 0) %>%
     plot_hist()
 ```
 
-### Correlation
+## Differential ATAC & RNA-seq Correlation
 
+<!--
 Inspiration
 
 - Fig. 4B from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/figure/F4/>
 - Fig. 2A-B from <https://epigeneticsandchromatin.biomedcentral.com/articles/10.1186/s13072-019-0260-2/figures/2>
-
+-->
 
 ```{r read}
 #| message: false
-diff_dat <- read_tsv(params$atac_rna_tsv) %>% 
+diff_dat <- read_tsv(params$atac_rna_tsv) %>%
     mutate(cluster_id = as.factor(cluster_id))
 ```
 
 
-```{r corr_all_genes}
+```{r corr_all_genes, message=FALSE}
 alpha_level <- 0.05
 log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
 
-cor_logfc <-  cor.test(diff_dat$log2FoldChange_atac, 
+cor_logfc <-  cor.test(diff_dat$log2FoldChange_atac,
          diff_dat$log2FoldChange_rna,
-         method = "spearman") %>% 
+         method = "spearman") %>%
     tidy()
-cor_logfc %>% kable()
+#cor_logfc %>% kable()
 
 lm_logfc <- diff_dat %>%
-    lm(log2FoldChange_atac ~ log2FoldChange_rna, .) 
+    lm(log2FoldChange_atac ~ log2FoldChange_rna, .)
 lm_rsq <- summary(lm_logfc)$r.squared
 
 abs_max <- 5.004292 # from filtered data below. this will exclude some points from the unfiltered data.
-    
+
 diff_dat %>%
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
     mutate(signif = case_when(
@@ -165,7 +157,7 @@ diff_dat %>%
         color = 'darkgrey'
     ) +
     geom_point(aes(fill = signif), alpha = 0.7, shape = 21, stroke = 0) +
-    geom_smooth(method = lm, 
+    geom_smooth(method = lm,
                 linewidth = 0.5,
                 se = FALSE, show.legend = FALSE) +
     scale_fill_manual(values = c(`TRUE` = "#252525", `FALSE` = "#D9D9D9")) +
@@ -175,16 +167,36 @@ diff_dat %>%
     labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
 ```
 
-R<sup>2</sup> = `r lm_rsq`
+Spearman's rho: `r cor_logfc$estimate` (p-value < 2.2e-16)
 
-### filtered to p-value < `r alpha_level`
 
-```{r corr_signif_genes}
+## Correlation within clusters
+
+```{r}
+
+cor_logfc <- diff_dat %>%
+    group_by(cluster_id) %>%
+    do(tidy(
+        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
+                 method = "spearman")
+    )) %>%
+    select(cluster_id, estimate, p.value) %>%
+    rename(cluster = cluster_id, `Spearman's Rho` = estimate, `p-value` = p.value) %>%
+    mutate(`p-value` = case_when(`p-value` < 0.05 ~ '< 0.05',
+                               TRUE ~ '>= 0.05'))
+kable(cor_logfc)
+```
+
+
+## Differential ATAC & RNA-seq Correlation
+
+
+```{r corr_signif_genes, message=FALSE, warning=FALSE, out.width='80%'}
 
 min_max <- list(min = ~ min(.x, na.rm = TRUE),
                 max = ~ max(.x, na.rm = TRUE))
 plot_corr_line <- function(dat, plot_lm = FALSE) {
-    
+
     abs_max <- dat %>%
         summarize(across(starts_with('log2FoldChange'), min_max)) %>%
         as.list() %>% unname() %>% unlist() %>% abs() %>% max()
@@ -226,52 +238,47 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
 }
 
 
-diff_dat_filt <- diff_dat %>% 
-  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
+diff_dat_filt <- diff_dat %>%
+  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level,
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
 
-cor_logfc <- diff_dat %>% 
-    group_by(cluster_id) %>% 
-    do(tidy(
-        cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
-                 method = "spearman")
-    ))
-kable(cor_logfc)
 
-lm_logfc <- diff_dat_filt %>% 
-    group_by(cluster_id) %>% 
+lm_logfc <- diff_dat_filt %>%
+    group_by(cluster_id) %>%
     do(tidy(lm(
         log2FoldChange_atac ~ log2FoldChange_rna, .
     )))
 
 
 ggplotly(
-  diff_dat_filt %>% plot_corr_line(plot_lm = TRUE), 
+  diff_dat_filt %>% plot_corr_line(plot_lm = TRUE),
   tooltip = 'text'
  )
 ```
 
-### Overlap significant genes
+Genes filtered to p-value < `r alpha_level` for both ATACseq & RNAseq log2FC
 
-#### between clusters
+<!--
+## Overlap between clusters
 
 ```{r signif_genes_overlap}
-gene_lists <- diff_dat_filt %>% 
-    select(gene_name, cluster_id) %>% 
-    arrange(gene_name) %>% 
+gene_lists <- diff_dat_filt %>%
+    select(gene_name, cluster_id) %>%
+    arrange(gene_name) %>%
     unstack()
 
-Venn(gene_lists) %>% 
-    process_data() %>% 
+Venn(gene_lists) %>%
+    process_data() %>%
     plot_venn() +
     scale_fill_viridis_c() +
     theme(legend.position = 'none')
 ```
+-->
 
-#### between expression-accessibility bins
+## Expression & accessbility
 
-```{r gene_quadrants}
-diff_dat_filt_cat <- diff_dat_filt %>% 
+```{r gene_quadrants, out.width='80%'}
+diff_dat_filt_cat <- diff_dat_filt %>%
     mutate(category = case_when(
         log2FoldChange_rna > 0 & log2FoldChange_atac > 0 ~ 'HE-HA',
         log2FoldChange_rna > 0 & log2FoldChange_atac < 0 ~ 'HE-LA',
@@ -280,38 +287,57 @@ diff_dat_filt_cat <- diff_dat_filt %>%
         TRUE ~ NA_character_
     ))
 
-diff_dat_filt_cat %>% 
-    select(cluster_id, category, gene_name,
-           starts_with('log2'), starts_with('pval')) %>% 
-    arrange(cluster_id, category) %>% 
-    write_csv(params$atac_rna_signif_genes_csv)
+p <- diff_dat_filt_cat %>%
+        mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
+        ggplot(
+            aes(
+                y = log2FoldChange_atac,
+                x = log2FoldChange_rna,
+                color = category,
+                group = category,
+                text = glue(
+                    'gene name:\t{gene_name}',
+                    'cluster:\t{cluster_id}',
+                    'ATAC log2(FC):\t{log2FoldChange_atac}',
+                    'RNA log2(FC):\t{log2FoldChange_rna}',
+                    .sep = '\n'
+                )
+            )
+        ) +
+        geom_hline(
+            yintercept = 0,
+            linetype = 'dashed',
+            color = 'darkgrey'
+        ) +
+        geom_vline(
+            xintercept = 0,
+            linetype = 'dashed',
+            color = 'darkgrey'
+        ) +
+        geom_point(alpha = 0.5) +
+        scale_color_viridis_d() +
+        guides(color = guide_legend(title = '')) +
+        lims(x = c(-abs_max, abs_max),
+             y = c(-abs_max, abs_max)) +
+        labs(y = 'ATAC log2(FC)', x = 'RNA log2(FC)')
 
-diff_dat_filt_cat %>% 
-    select(gene_name, category) %>% 
-    arrange(gene_name) %>% 
-    unstack() %>% 
-    Venn() %>% 
-    process_data() %>% 
-    plot_venn() +
-    scale_fill_viridis_c() +
-    theme(legend.position = 'none')
-
+ggplotly(p, tooltip = 'text')
 ```
-
-#### Overlap in expression & accessbility between clusters
 
 - HE-HA: High Expression (RNAseq) and High Accessibility (ATACseq)
 - LE-LA: Low Expression (RNAseq) and Low Accessibility (ATACseq)
 
+## Expression & accessbility
+
 ```{r he-ha_genes, width='100%'}
 plot_venn_categories <- function(dat, expr_category = 'HE-HA') {
-  dat %>% 
+  dat %>%
     filter(category == expr_category) %>%
-    select(gene_name, cluster_id) %>% 
-    arrange(gene_name) %>% 
-    unstack() %>% 
-    Venn() %>% 
-    process_data() %>% 
+    select(gene_name, cluster_id) %>%
+    arrange(gene_name) %>%
+    unstack() %>%
+    Venn() %>%
+    process_data() %>%
     plot_venn() +
     scale_fill_viridis_c() +
     labs(title = expr_category) +
@@ -339,14 +365,9 @@ plot_grid +
     inset_element(plots[[4]], left = 0, bottom = 0, right = 0.5, top = 0.5)   # lower left
 ```
 
-### Enrichment analysis
 
-TODO run clusterProfiler separately on each cluster's HE-HA gene list. need > 100 genes for good ORA call
+## In Progress & Next Steps
 
-https://yulab-smu.top/biomedical-knowledge-mining-book/universal-api.html#msigdb-gsea
-
-use category C2 CP (curated gene sets - canonical patheays )
-
-## Infer TF-gene regulatory network
-
-
+- Enrichment analysis on high-expression high-accessibility genes (clusterProfiler)
+- Construct TF-gene regulatory network (TOBIAS)
+- Analyze variability in chromatin accessibility (chromVar)

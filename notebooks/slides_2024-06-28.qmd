@@ -2,7 +2,7 @@
 title: Integrated ATAC-seq and RNA-seq analysis for SCLC
 author: CCBR
 date: 2024-07-02
-format: 
+format:
     revealjs:
         theme: [default, custom.scss]
         embed-resources: true
@@ -125,7 +125,7 @@ tf_rank_hint %>%
 ## chromVAR - variability in accessibility {visibility="hidden"}
 
 ```{r chromvar_clusters}
-plot_top_var_tfs <- function(var_df, n_top = 20, 
+plot_top_var_tfs <- function(var_df, n_top = 20,
                              title_str = glue::glue("Top {n_top} TFs by variability in accessibility")) {
     top_tfs <- var_df %>%
       slice_max(order_by = variability, n = n_top) %>%
@@ -174,9 +174,9 @@ Inspired by Fig. 4A from <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9581296/f
 
 ```{r plot_venn}
 #| message: false
-v <- read_delim(params$atac_rna_venn, delim = ':\t', 
-           col_names = c('set','genes')) %>% 
-    pivot_wider(names_from = set, values_from = genes) %>% 
+v <- read_delim(params$atac_rna_venn, delim = ':\t',
+           col_names = c('set','genes')) %>%
+    pivot_wider(names_from = set, values_from = genes) %>%
     unlist()
 
 venn_dat <- list(
@@ -184,8 +184,8 @@ venn_dat <- list(
     ATACseq = identity_transformer(glue("{v[['RNAseq']]-v[['joined']]}:{v[['RNAseq']]+v[['ATACseq']]+v[['joined']]}"))
 )
 
-Venn(venn_dat) %>% 
-    process_data(shape_id = "201") %>% 
+Venn(venn_dat) %>%
+    process_data(shape_id = "201") %>%
     plot_venn() +
     scale_fill_distiller(palette = 'YlGnBu', direction = 1) +
     theme(legend.position = 'none')
@@ -199,7 +199,7 @@ ATACseq peaks in known promoter regions intersected with differential genes from
 Inspired by Fig. 3B-C from <https://www.science.org/doi/10.1126/science.abe1505#F3>
 -->
 ```{r peaks_in_genes}
-overlap_counts <- read_tsv(params$set_counts_tsv) 
+overlap_counts <- read_tsv(params$set_counts_tsv)
 
 plot_hist <- function(dat) {
     dat %>%
@@ -211,7 +211,7 @@ plot_hist <- function(dat) {
 }
 
 
-overlap_counts %>% 
+overlap_counts %>%
     plot_hist() +
     scale_y_continuous(labels = label_comma())
 
@@ -222,7 +222,7 @@ overlap_counts %>%
 
 ```{r peaks_in_genes_filt}
 overlap_counts %>%
-    filter(count > 0) %>% 
+    filter(count > 0) %>%
     plot_hist()
 ```
 
@@ -237,7 +237,7 @@ Inspiration
 
 ```{r read}
 #| message: false
-diff_dat <- read_tsv(params$atac_rna_tsv) %>% 
+diff_dat <- read_tsv(params$atac_rna_tsv) %>%
     mutate(cluster_id = as.factor(cluster_id))
 ```
 
@@ -246,18 +246,18 @@ diff_dat <- read_tsv(params$atac_rna_tsv) %>%
 alpha_level <- 0.05
 log2fc_thresh <- 0 # setting to zero removes filtering by log2FC
 
-cor_logfc <-  cor.test(diff_dat$log2FoldChange_atac, 
+cor_logfc <-  cor.test(diff_dat$log2FoldChange_atac,
          diff_dat$log2FoldChange_rna,
-         method = "spearman") %>% 
+         method = "spearman") %>%
     tidy()
 #cor_logfc %>% kable()
 
 lm_logfc <- diff_dat %>%
-    lm(log2FoldChange_atac ~ log2FoldChange_rna, .) 
+    lm(log2FoldChange_atac ~ log2FoldChange_rna, .)
 lm_rsq <- summary(lm_logfc)$r.squared
 
 abs_max <- 5.004292 # from filtered data below. this will exclude some points from the unfiltered data.
-    
+
 diff_dat %>%
     mutate(across(starts_with('log2FoldChange'), ~ round(., 2))) %>%
     mutate(signif = case_when(
@@ -282,7 +282,7 @@ diff_dat %>%
         color = 'darkgrey'
     ) +
     geom_point(aes(fill = signif), alpha = 0.7, shape = 21, stroke = 0) +
-    geom_smooth(method = lm, 
+    geom_smooth(method = lm,
                 linewidth = 0.5,
                 se = FALSE, show.legend = FALSE) +
     scale_fill_manual(values = c(`TRUE` = "#252525", `FALSE` = "#D9D9D9")) +
@@ -299,14 +299,14 @@ Spearman's rho: `r cor_logfc$estimate` (p-value < 2.2e-16)
 
 ```{r}
 
-cor_logfc <- diff_dat %>% 
-    group_by(cluster_id) %>% 
+cor_logfc <- diff_dat %>%
+    group_by(cluster_id) %>%
     do(tidy(
         cor.test(.$log2FoldChange_atac, .$log2FoldChange_rna,
                  method = "spearman")
-    )) %>% 
-    select(cluster_id, estimate, p.value) %>% 
-    rename(cluster = cluster_id, `Spearman's Rho` = estimate, `p-value` = p.value) %>% 
+    )) %>%
+    select(cluster_id, estimate, p.value) %>%
+    rename(cluster = cluster_id, `Spearman's Rho` = estimate, `p-value` = p.value) %>%
     mutate(`p-value` = case_when(`p-value` < 0.05 ~ '< 0.05',
                                TRUE ~ '>= 0.05'))
 kable(cor_logfc)
@@ -320,7 +320,7 @@ kable(cor_logfc)
 min_max <- list(min = ~ min(.x, na.rm = TRUE),
                 max = ~ max(.x, na.rm = TRUE))
 plot_corr_line <- function(dat, plot_lm = FALSE) {
-    
+
     abs_max <- dat %>%
         summarize(across(starts_with('log2FoldChange'), min_max)) %>%
         as.list() %>% unname() %>% unlist() %>% abs() %>% max()
@@ -362,20 +362,20 @@ plot_corr_line <- function(dat, plot_lm = FALSE) {
 }
 
 
-diff_dat_filt <- diff_dat %>% 
-  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
+diff_dat_filt <- diff_dat %>%
+  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level,
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
 
 
-lm_logfc <- diff_dat_filt %>% 
-    group_by(cluster_id) %>% 
+lm_logfc <- diff_dat_filt %>%
+    group_by(cluster_id) %>%
     do(tidy(lm(
         log2FoldChange_atac ~ log2FoldChange_rna, .
     )))
 
 
 ggplotly(
-  diff_dat_filt %>% plot_corr_line(plot_lm = TRUE), 
+  diff_dat_filt %>% plot_corr_line(plot_lm = TRUE),
   tooltip = 'text'
  )
 ```
@@ -386,13 +386,13 @@ Genes filtered to p-value < `r alpha_level` for both ATACseq & RNAseq log2FC
 ## Overlap between clusters
 
 ```{r signif_genes_overlap}
-gene_lists <- diff_dat_filt %>% 
-    select(gene_name, cluster_id) %>% 
-    arrange(gene_name) %>% 
+gene_lists <- diff_dat_filt %>%
+    select(gene_name, cluster_id) %>%
+    arrange(gene_name) %>%
     unstack()
 
-Venn(gene_lists) %>% 
-    process_data() %>% 
+Venn(gene_lists) %>%
+    process_data() %>%
     plot_venn() +
     scale_fill_viridis_c() +
     theme(legend.position = 'none')
@@ -402,7 +402,7 @@ Venn(gene_lists) %>%
 ## Expression & accessbility
 
 ```{r gene_quadrants, out.width='80%'}
-diff_dat_filt_cat <- diff_dat_filt %>% 
+diff_dat_filt_cat <- diff_dat_filt %>%
     mutate(category = case_when(
         log2FoldChange_rna > 0 & log2FoldChange_atac > 0 ~ 'HE-HA',
         log2FoldChange_rna > 0 & log2FoldChange_atac < 0 ~ 'HE-LA',
@@ -455,13 +455,13 @@ ggplotly(p, tooltip = 'text')
 
 ```{r he-ha_genes, width='100%'}
 plot_venn_categories <- function(dat, expr_category = 'HE-HA') {
-  dat %>% 
+  dat %>%
     filter(category == expr_category) %>%
-    select(gene_name, cluster_id) %>% 
-    arrange(gene_name) %>% 
-    unstack() %>% 
-    Venn() %>% 
-    process_data() %>% 
+    select(gene_name, cluster_id) %>%
+    arrange(gene_name) %>%
+    unstack() %>%
+    Venn() %>%
+    process_data() %>%
     plot_venn() +
     scale_fill_viridis_c() +
     labs(title = expr_category) +
@@ -497,7 +497,7 @@ load(params$clusterprofiler_rdata)
 
 n_top <- 10
 enrich_plot <- enrich_results %>%
-  mutate(ID = str_replace_all(ID, "_", " ") %>% str_wrap(width = 80)) %>% 
+  mutate(ID = str_replace_all(ID, "_", " ") %>% str_wrap(width = 80)) %>%
   group_by(cluster_id) %>%
   slice_max(order_by = gene_ratio, n = n_top) %>%
   mutate(name = fct_reorder(ID, .x = Count)

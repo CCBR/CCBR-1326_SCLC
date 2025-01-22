@@ -2,7 +2,7 @@
 title: Integrated ATAC-seq and RNA-seq analysis for SCLC
 author: CCBR
 date: 2024-07-12
-format: 
+format:
     html:
         theme: [default]
         embed-resources: true
@@ -98,8 +98,8 @@ plot_heatmap_col <- function(top_tfs_hint,
                 scale_fill_distiller(palette = 'Greys') +
                 theme(strip.text = element_blank(),
                       legend.position = 'none')
-        ) & {if (isFALSE(show_legend)) theme(legend.position = 'none')} 
-    )  + 
+        ) & {if (isFALSE(show_legend)) theme(legend.position = 'none')}
+    )  +
         plot_layout(heights = c(1,1,1,0.33))
 }
 plot_heatmap_grid <- function(dat) {
@@ -118,8 +118,8 @@ plot_heatmap_grid(top_tfs_hint)
 ```{r check-c3}
 #| message: false
 all_tfs <- read_tsv(params$tf_ranks)
-all_tfs %>% 
-    filter(str_detect(gene_name,'ASCL1') | str_detect(gene_name,'NEUROD1')) %>% 
+all_tfs %>%
+    filter(str_detect(gene_name,'ASCL1') | str_detect(gene_name,'NEUROD1')) %>%
     kable()
 ```
 
@@ -141,8 +141,8 @@ infile_outdegree <- "output_2/network_outdegree/TF_outdegree.tsv"
 sample_matches <- read_tsv(infile_matched) %>% select(atac_sample_id, rna_sample_id)
 
 cluster_membership <- read_tsv(infile_clusters) %>%
-    rename(cluster_id = clusterName, sample_id = sampleName) %>% 
-    right_join(sample_matches, by = c('sample_id' = 'atac_sample_id')) %>% 
+    rename(cluster_id = clusterName, sample_id = sampleName) %>%
+    right_join(sample_matches, by = c('sample_id' = 'atac_sample_id')) %>%
     filter(!is.na(sample_id), !is.na(rna_sample_id))
 
 cluster_counts <- cluster_membership %>%
@@ -158,30 +158,30 @@ atac_scores <- chromvar_dat %>%
       names_to = "sample_id", values_to = "z_score"
     ) %>%
     mutate(sample_id = str_replace_all(sample_id, ".sorted.dedup.bam", "")) %>%
-    left_join(cluster_membership, relationship = 'many-to-many') %>% 
+    left_join(cluster_membership, relationship = 'many-to-many') %>%
     select(name, sample_id, z_score, cluster_id, n) %>%
-    rename(TF_name = name) %>% 
-    separate_longer_delim(TF_name, '::') %>% 
-    group_by(cluster_id, TF_name) %>% 
+    rename(TF_name = name) %>%
+    separate_longer_delim(TF_name, '::') %>%
+    group_by(cluster_id, TF_name) %>%
     summarize(A_score = mean(z_score))
 
-rna_scores <- read_csv(infile_rna_expr) %>% 
-    rename(TF_name = 'hgnc_symbol') %>% 
-    pivot_longer(-TF_name, names_to = 'rna_sample_id', values_to = 'rna_count_norm') %>% 
-    left_join(cluster_membership, relationship = 'many-to-many') %>% 
-    group_by(TF_name, cluster_id) %>% 
+rna_scores <- read_csv(infile_rna_expr) %>%
+    rename(TF_name = 'hgnc_symbol') %>%
+    pivot_longer(-TF_name, names_to = 'rna_sample_id', values_to = 'rna_count_norm') %>%
+    left_join(cluster_membership, relationship = 'many-to-many') %>%
+    group_by(TF_name, cluster_id) %>%
     summarize(E_score = mean(rna_count_norm))
 
 outdegree_scores <- read_tsv(infile_outdegree) %>%
     filter(!is.na(sample_id)) %>%
-    left_join(cluster_membership, relationship = 'many-to-many') %>% 
-    group_by(TF_name, cluster_id) %>% 
+    left_join(cluster_membership, relationship = 'many-to-many') %>%
+    group_by(TF_name, cluster_id) %>%
     summarize(O_score = mean(outdegree))
 
 
-dat_joined <- full_join(atac_scores, rna_scores, 
+dat_joined <- full_join(atac_scores, rna_scores,
                         by = c('TF_name', 'cluster_id')) %>%
-    full_join(outdegree_scores, by = c('TF_name', 'cluster_id')) %>% 
+    full_join(outdegree_scores, by = c('TF_name', 'cluster_id')) %>%
     filter(if_all(everything(), ~ !is.na(.x)))
 
 rank_col <- function(dat,
@@ -193,9 +193,9 @@ rank_col <- function(dat,
         mutate("rank_{{value_col}}" := row_number())
 }
 
-tf_ranks_clusters <- dat_joined %>% 
-    rank_col(value_col = A_score) %>% 
-    rank_col(value_col = E_score) %>% 
+tf_ranks_clusters <- dat_joined %>%
+    rank_col(value_col = A_score) %>%
+    rank_col(value_col = E_score) %>%
     rank_col(value_col = O_score) %>%
     mutate(rank_sum = rank_A_score + rank_E_score + rank_O_score) %>%
     group_by(cluster_id) %>%
@@ -204,17 +204,16 @@ tf_ranks_clusters <- dat_joined %>%
     arrange(TF_rank)
 
 # ASCL1 & NEUROD1 are present
-tf_ranks_clusters %>% filter(TF_name == 'ASCL1' | TF_name == 'NEUROD1') %>% 
+tf_ranks_clusters %>% filter(TF_name == 'ASCL1' | TF_name == 'NEUROD1') %>%
     kable()
 
 tf_ranks_clusters %>% write_csv('output_2/calc_rank_score/tf_rank_within_clusters.csv')
 
-tf_ranks_clusters %>% 
-    filter(TF_rank <= 25) %>% 
+tf_ranks_clusters %>%
+    filter(TF_rank <= 25) %>%
     rename(outdegree = O_score,
            expression = E_score,
            accessibility = A_score,
-           gene_name = TF_name) %>% 
+           gene_name = TF_name) %>%
     plot_heatmap_grid()
 ```
-

@@ -2,7 +2,7 @@
 title: Integrated ATAC-seq and RNA-seq analysis for SCLC
 author: CCBR
 date: 2024-03-26
-format: 
+format:
     revealjs:
         theme: [default, custom.scss]
         embed-resources: true
@@ -50,17 +50,17 @@ set.seed(20240326)
 ## Genes of interest
 
 ```{r gene_quadrants, out.width='80%'}
-diff_dat <- read_tsv(params$atac_rna_tsv) %>% 
+diff_dat <- read_tsv(params$atac_rna_tsv) %>%
     mutate(cluster_id = as.factor(cluster_id))
 
 alpha_level <- 0.05
 log2fc_thresh <- 0
 
-diff_dat_filt <- diff_dat %>% 
-  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level, 
+diff_dat_filt <- diff_dat %>%
+  filter(pvalue_rna < alpha_level, pvalue_atac < alpha_level,
          abs(log2FoldChange_atac) >= log2fc_thresh, abs(log2FoldChange_rna) >= log2fc_thresh)
 
-diff_dat_filt_cat <- diff_dat_filt %>% 
+diff_dat_filt_cat <- diff_dat_filt %>%
     mutate(category = case_when(
         log2FoldChange_rna > 0 & log2FoldChange_atac > 0 ~ 'HE-HA',
         log2FoldChange_rna > 0 & log2FoldChange_atac < 0 ~ 'HE-LA',
@@ -121,7 +121,7 @@ load(params$clusterprofiler_rdata)
 
 n_top <- 10
 enrich_plot <- enrich_results %>%
-  mutate(ID = str_replace_all(ID, "_", " ") %>% str_wrap(width = 80)) %>% 
+  mutate(ID = str_replace_all(ID, "_", " ") %>% str_wrap(width = 80)) %>%
   group_by(cluster_id) %>%
   slice_max(order_by = gene_ratio, n = n_top) %>%
   mutate(name = fct_reorder(ID, .x = Count)
@@ -164,7 +164,7 @@ print(var_plot)
 ## chromVAR top TFs
 
 ```{r chromvar_top_tfs}
-plot_top_var_tfs <- function(var_df, n_top = 20, 
+plot_top_var_tfs <- function(var_df, n_top = 20,
                              title_str = glue::glue("Top {n_top} TFs by variability in accessibility")) {
     top_tfs <- var_df %>%
       slice_max(order_by = variability, n = n_top) %>%
