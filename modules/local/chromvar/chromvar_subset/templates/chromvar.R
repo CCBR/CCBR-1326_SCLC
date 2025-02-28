@@ -88,7 +88,7 @@ getJasparMotifs_ccbr <- function(species = "Homo sapiens",
   }
   return(out)
 }
-motifs <- getJasparMotifs_ccbr(jaspar_db = JASPAR2020:JASPAR2020)
+motifs <- getJasparMotifs_ccbr(jaspar_db = JASPAR2020::JASPAR2020)
 
 
 # find motifs in ROI
