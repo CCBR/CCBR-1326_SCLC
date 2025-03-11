@@ -3,7 +3,7 @@ default_stages: [pre-commit]
 exclude: |
   (?x)(
       ^assets/|
-      ^docs/.*.html|
+      ^docs/|
       ^notebooks/.*.html|
       ^_extensions/
    )

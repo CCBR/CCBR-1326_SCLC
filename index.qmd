@@ -1,0 +1,14 @@
+---
+title: Analysis Notebooks & Slides for CCBR-1326
+author: "[Kelly Sovacool](https://github.com/kelly-sovacool)"
+---
+
+```{python}
+#| output: asis
+#| echo: false
+
+import pathlib
+for file in sorted(pathlib.Path('notebooks').iterdir()):
+    if file.suffix == '.qmd' and pathlib.Path(f'docs/notebooks/{file.stem}.html').exists():
+        print(f"- [{file.stem}](/notebooks/{file.stem}.html)")
+```
