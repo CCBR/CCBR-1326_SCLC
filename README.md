@@ -26,6 +26,14 @@ This work was published in the following paper:
 }
 ```
 
+### Methods
+
+> ### Construction of gene regulatory networks
+> 
+> We constructed regulatory networks to link open chromatin, gene expression, and transcription factor binding sites (TFBS) using a method similar to that described by Tang _et al._ To link open chromatin to gene expression, we performed a Pearson correlation test between ATAC-seq peaks within ±0.5 Mb of a gene’s transcription start site (TSS) and the normalized RNA-seq counts of that gene. We retained peak-gene pairs with an FDR <0.01. Additionally, foot printing analysis was performed using HINT-ATAC85,86 to link TFBS with ATAC-seq peaks. The final network was constructed by combining peak-gene links with TF-peak links to infer the networks of TFs and the genes they regulate.
+> 
+> To rank the TFs, we utilized the scoring system developed by Tang et al. The ranking was based on three metrics: (1) outdegree, which represents the number of target genes for a TF in the constructed regulatory networks for each sample, (2) chromatin accessibility of TFBS, computed using chromVAR87 as the change in accessibility based on ATAC-seq peaks at TFBS relative to the average accessibility across samples, and (3) differential gene expression of TF genes, computed using DESeq2 for log2FoldChange from RNA-seq data. Each TF was independently ranked according to these metrics, and the scores were summed across the three metrics to generate an overall TF rank.
+
 ## Usage
 
 on Biowulf
